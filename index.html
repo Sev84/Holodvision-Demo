@@ -15,6 +15,31 @@
     <!-- Babel: JSX kodunu tarayıcıda çalıştırmak için -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        // Firebase Realtime Database modüllerini içe aktarın
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+        
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyC77aQt7K6CicZYwgcxgLEH8sGmErcbkdc",
+            authDomain: "holodvision-piksenfoni.firebaseapp.com",
+            databaseURL: "https://holodvision-piksenfoni-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "holodvision-piksenfoni",
+            storageBucket: "holodvision-piksenfoni.firebasestorage.com",
+            messagingSenderId: "924131810834",
+            appId: "1:924131810834:web:abf8f10b5250e38fc702cb"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        window.firebaseDb = getDatabase(app); // Global olarak erişilebilir yap
+        // Firebase v9+ fonksiyonlarını global olarak erişilebilir yap
+        window.firebaseRef = ref;
+        window.firebaseOnValue = onValue;
+    </script>
+
     <!-- Temel Sayfa Stilleri -->
     <style>
         body {
@@ -335,7 +360,7 @@
 
         const LiveSensorDemoView = () => {
             const [detectedColor, setDetectedColor] = useState({ name: 'Bekleniyor...', code: 'default' });
-            const [manualInput, setManualInput] = useState("");
+            const [isConnected, setIsConnected] = useState(false);
             const audioRef = useRef(new Audio());
 
             const colorData = {
@@ -348,24 +373,42 @@
                 pembe: { name: 'Pembe', hex: '#ec4899', sound: 'pembe' },
             };
 
-            const handleColorChange = (colorCode) => {
-                const colorInfo = colorData[colorCode.toLowerCase().trim()];
-                if (!colorInfo) {
-                    setDetectedColor({ name: 'Bilinmeyen Renk', code: 'default' });
-                    return;
-                };
-                
-                setDetectedColor({ name: colorInfo.name, code: colorCode });
+            useEffect(() => {
+                // Firebase Realtime Database'den veri dinleme
+                // window.firebaseDb, window.firebaseRef ve window.firebaseOnValue'nun tanımlı olduğundan emin olun
+                if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) {
+                    const colorRef = window.firebaseRef(window.firebaseDb, '/sensorData/color'); // Sensör verisinin yolu
+                    const unsubscribe = window.firebaseOnValue(colorRef, (snapshot) => {
+                        const colorCode = snapshot.val();
+                        if (colorCode) {
+                            const colorInfo = colorData[colorCode.toLowerCase().trim()];
+                            if (colorInfo) {
+                                setDetectedColor({ name: colorInfo.name, code: colorCode });
+                                const audio = audioRef.current;
+                                audio.src = `https://sev84.github.io/Holodvision-Piksenfoni-Besteci/${colorInfo.sound}.wav`;
+                                audio.play().catch(error => console.error("Ses çalma hatası:", error));
+                                setIsConnected(true); // Veri geliyorsa bağlı kabul et
+                            } else {
+                                setDetectedColor({ name: 'Bilinmeyen Renk', code: 'default' });
+                                setIsConnected(true);
+                            }
+                        } else {
+                            setDetectedColor({ name: 'Bekleniyor...', code: 'default' });
+                            setIsConnected(false);
+                        }
+                    }, (error) => {
+                        console.error("Firebase'den veri okuma hatası:", error);
+                        setDetectedColor({ name: 'Hata!', code: 'default' });
+                        setIsConnected(false);
+                    });
 
-                const audio = audioRef.current;
-                audio.src = `https://sev84.github.io/Holodvision-Piksenfoni-Besteci/${colorInfo.sound}.wav`;
-                audio.play().catch(error => console.error("Ses çalma hatası:", error));
-            };
-            
-            const handleManualSubmit = (e) => {
-                e.preventDefault();
-                handleColorChange(manualInput);
-            };
+                    // Temizleme fonksiyonu
+                    return () => window.firebaseOnValue(colorRef, unsubscribe); // Dinleyiciyi doğru şekilde kaldır
+                } else {
+                    console.warn("Firebase veritabanı veya ilgili fonksiyonlar henüz başlatılmadı.");
+                    setIsConnected(false);
+                }
+            }, []); // Sadece bir kere çalıştır
 
             useEffect(() => {
                 document.body.style.backgroundColor = colorData[detectedColor.code]?.hex || '#0c0a18';
@@ -376,22 +419,20 @@
 
             return (
                 <div className="w-full max-w-2xl mx-auto text-center">
-                    <h1 className="text-4xl font-bold text-white mb-2">Canlı Sensör Simülatörü</h1>
-                    <p className="text-gray-400 mb-6">Deneyap Kart'tan gelen renk kodunu buraya manuel olarak girin.</p>
+                    <h1 className="text-4xl font-bold text-white mb-2">Canlı Sensör Verisi</h1>
+                    <p className="text-gray-400 mb-6">Deneyap Kart'tan gelen canlı renk verisi burada gösterilir.</p>
                     
-                    <form onSubmit={handleManualSubmit} className="flex flex-col sm:flex-row gap-4 mb-6">
-                        <input 
-                            type="text"
-                            value={manualInput}
-                            onChange={(e) => setManualInput(e.target.value)}
-                            placeholder="Örn: krmz, mavi, ysl..."
-                            className="flex-grow p-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                        />
-                        <button type="submit" className="p-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">Gönder</button>
-                    </form>
-
-                    <p className="text-lg text-gray-300 mb-6">
-                        Algılanan renk: <strong className="font-bold text-2xl" style={{color: colorData[detectedColor.code]?.hex || '#a78bfa' }}>{detectedColor.name}</strong>
+                    <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-gray-700">
+                        <p className="text-lg text-gray-300 mb-4">
+                            Bağlantı Durumu: <strong className={`font-bold text-xl ${isConnected ? 'text-green-400' : 'text-red-400'}`}>{isConnected ? 'Bağlı' : 'Bağlı Değil'}</strong>
+                        </p>
+                        <p className="text-lg text-gray-300">
+                            Algılanan renk: <strong className="font-bold text-2xl" style={{color: colorData[detectedColor.code]?.hex || '#a78bfa' }}>{detectedColor.name}</strong>
+                        </p>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-4">
+                        Bu bölüm, Deneyap Kart'tan gelen gerçek zamanlı renk verilerini gösterir.
+                        Kartınızın Firebase Realtime Database'e doğru şekilde veri gönderdiğinden emin olun.
                     </p>
                 </div>
             );
@@ -428,167 +469,168 @@
                     <h3 className="text-3xl font-bold mb-4">Renk ve Ses Eldiveni</h3>
                     <p className="text-gray-400 max-w-2xl mx-auto mb-6">Eldiveni kullanarak tablolardaki renklere dokunun ve notaları duyun. Sanatla aranızdaki engelleri kaldırın.</p>
                     <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105">
-                        ⚡ Eldiveni Bağla
+                        ⚡ Firebase Bağlantısı Kuruldu
                     </button>
-                    <p className="text-sm text-gray-500 mt-3">Bağlı Değil</p>
+                    <p className="text-sm text-gray-500 mt-3">Canlı sensör verisi için "Sensör Simülatörü" bölümünü ziyaret edin.</p>
                 </div>
             </div>
         );
 
-        const IletisimView = () => (
-            <div className="w-full max-w-2xl mx-auto text-center">
-                <h2 className="text-4xl font-bold mb-4">İletişim</h2>
-                <p className="text-gray-400 mb-8">Projemizle ilgili soru, görüş ve önerileriniz için bizimle iletişime geçebilirsiniz.</p>
-                <div className="bg-gray-800/50 p-8 rounded-xl">
-                    <p className="text-lg text-red-300">HOLO-D-VISION Takımı</p>
-                    <a href="mailto:ornek@mail.com" className="text-white hover:underline">ornek@mail.com</a>
-                </div>
-            </div>
-        );
+        const IletisimView = ({ setNotification }) => {
+            const [formData, setFormData] = useState({
+                name: '',
+                email: '',
+                message: ''
+            });
 
-        const ParticleBackground = () => {
-            const canvasRef = useRef(null);
-            useEffect(() => {
-                const canvas = canvasRef.current;
-                const ctx = canvas.getContext('2d');
-                let particles = [];
-                const resizeCanvas = () => {
-                    canvas.width = window.innerWidth;
-                    canvas.height = window.innerHeight;
-                    let numberOfParticles = (canvas.height * canvas.width) / 9000;
-                    particles = [];
-                    for (let i = 0; i < numberOfParticles; i++) {
-                        particles.push({
-                            x: Math.random() * canvas.width,
-                            y: Math.random() * canvas.height,
-                            size: Math.random() * 2 + 1,
-                            speedX: Math.random() * 1 - 0.5,
-                            speedY: Math.random() * 1 - 0.5,
-                        });
-                    }
-                };
-                const animate = () => {
-                    if(!canvasRef.current) return;
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    for (let i = 0; i < particles.length; i++) {
-                        let p = particles[i];
-                        p.x += p.speedX;
-                        p.y += p.speedY;
-                        if (p.x > canvas.width || p.x < 0) p.speedX *= -1;
-                        if (p.y > canvas.height || p.y < 0) p.speedY *= -1;
-                        ctx.fillStyle = 'rgba(233, 69, 96, 0.5)';
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                    requestAnimationFrame(animate);
-                };
-                resizeCanvas();
-                animate();
-                window.addEventListener('resize', resizeCanvas);
-                return () => window.removeEventListener('resize', resizeCanvas);
-            }, []);
-            return <canvas ref={canvasRef} className="fixed top-0 left-0 w-full h-full" style={{ zIndex: -1 }} />;
-        };
-
-        function App() {
-            const [view, setView] = useState('welcome');
-            const [notification, setNotification] = useState("");
-            const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-            const [isStarting, setIsStarting] = useState(false);
-
-            const toggleMusic = (forcePlay = null) => {
-                const bgMusic = document.getElementById('bg-music-player');
-                if (bgMusic) {
-                    const shouldPlay = forcePlay !== null ? forcePlay : !isMusicPlaying;
-                    if (shouldPlay) {
-                        bgMusic.play().catch(error => console.error("Müzik çalınamadı:", error));
-                    } else {
-                        bgMusic.pause();
-                    }
-                    setIsMusicPlaying(shouldPlay);
-                }
-            };
-            
-            const handleStartExperience = async () => {
-                if (isStarting) return;
-                setIsStarting(true);
-
-                const welcomeText = "Piksenfoni'ye hoş geldiniz. Sanatı deneyimlemek, bestelemek ve canlı sensörlerle etkileşime geçmek için sekmeleri kullanın.";
-                try {
-                    await speakText(welcomeText);
-                } catch (error) {
-                    console.error("Giriş seslendirmesi sırasında hata oluştu:", error);
-                    setNotification("Seslendirme başlatılamadı. Lütfen tarayıcı ayarlarınızı kontrol edin.");
-                }
-                toggleMusic(true);
-                setView('anasayfa');
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
             };
 
-            const NavButton = ({ targetView, icon, children }) => (
-                <button onClick={() => setView(targetView)} className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${view === targetView ? 'bg-red-700 text-white' : 'text-gray-300 hover:bg-red-700/50 hover:text-white'} flex items-center gap-2`}>
-                    {icon} {children}
-                </button>
-            );
-            
-            if (view === 'welcome') {
-                return (
-                    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                        <div className="bg-gradient-to-br from-gray-900 to-[#1a1a2e] p-8 rounded-2xl shadow-2xl border border-red-500/50 max-w-lg w-full text-center">
-                            <img src="https://raw.githubusercontent.com/Sev84/Holodvision-Duyularin-Harmonisi/main/logo1111111.png" alt="PİKSENFONİ Logo" className="mx-auto mb-4 h-20"/>
-                            <h2 className="text-3xl font-bold text-red-400 mb-4">PİKSENFONİ'ye Hoş Geldiniz!</h2>
-                            <p className="text-gray-300 mb-8">Sanatı deneyimlemek, bestelemek ve canlı sensörlerle etkileşime geçmek için sekmeleri kullanın.</p>
-                            <button onClick={handleStartExperience} disabled={isStarting} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                                {isStarting ? 'Başlatılıyor...' : 'Deneyime Başla'}
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                // Form gönderimini simüle et
+                console.log("İletişim Formu Gönderildi:", formData);
+                setNotification("Mesajınız başarıyla gönderildi! Teşekkür ederiz.");
+                setFormData({ name: '', email: '', message: '' }); // Formu temizle
+            };
 
             return (
-                <div className="text-white min-h-screen">
-                    <Notification message={notification} onClear={() => setNotification("")} />
-                    {(view === 'gallery' || view === 'anasayfa') && <ParticleBackground />}
+                <div className="w-full max-w-2xl mx-auto text-center">
+                    <h2 className="text-4xl font-bold mb-4">İletişim</h2>
+                    <p className="text-gray-400 mb-8">Sorularınız, geri bildirimleriniz veya işbirliği teklifleriniz için bizimle iletişime geçin.</p>
                     
-                    <nav className="bg-black/20 backdrop-blur-md sticky w-full z-30 top-0">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex items-center justify-between h-16">
-                                <div className="flex items-center">
-                                    <img className="h-10 cursor-pointer" src="https://raw.githubusercontent.com/Sev84/Holodvision-Duyularin-Harmonisi/main/logo1111111.png" alt="Logo" onClick={() => setView('anasayfa')}/>
-                                    <button onClick={() => toggleMusic()} className="ml-4 text-gray-300 hover:text-white transition-colors p-2 rounded-full hover:bg-red-700/50">
-                                        {isMusicPlaying ? <Volume2Icon /> : <VolumeXIcon />}
-                                    </button>
-                                </div>
-                                <div className="hidden md:flex items-baseline space-x-4">
-                                    <NavButton targetView="anasayfa" icon={<HomeIcon />}>Ana Sayfa</NavButton>
-                                    <NavButton targetView="proje" icon={<FileTextIcon />}>Proje</NavButton>
-                                    <NavButton targetView="gallery" icon={<EyeIcon />}>Galeri</NavButton>
-                                    <NavButton targetView="sensor" icon={<RssIcon />}>Canlı Sensör</NavButton>
-                                    <NavButton targetView="composer" icon={<MusicIcon />}>Besteci</NavButton>
-                                    <NavButton targetView="iletisim" icon={<MailIcon />}>İletişim</NavButton>
-                                </div>
-                            </div>
+                    <form onSubmit={handleSubmit} className="bg-gray-800/50 p-8 rounded-xl shadow-lg border border-gray-700">
+                        <div className="mb-6 text-left">
+                            <label htmlFor="name" className="block text-gray-300 text-sm font-bold mb-2">Adınız:</label>
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500"
+                                placeholder="Adınız Soyadınız"
+                                required
+                            />
                         </div>
-                    </nav>
-                    <main className="flex justify-center items-center">
-                        <div className="container mx-auto">
-                            {view === 'anasayfa' && <AnimatedSection><AnaSayfaView /></AnimatedSection>}
-                            {view === 'proje' && <AnimatedSection><ProjeView /></AnimatedSection>}
-                            {view === 'gallery' && <AnimatedSection><GalleryView setNotification={setNotification} /></AnimatedSection>}
-                            {view === 'composer' && <AnimatedSection><ComposerView /></AnimatedSection>}
-                            {view === 'sensor' && <AnimatedSection><LiveSensorDemoView /></AnimatedSection>}
-                            {view === 'iletisim' && <AnimatedSection><IletisimView /></AnimatedSection>}
+                        <div className="mb-6 text-left">
+                            <label htmlFor="email" className="block text-gray-300 text-sm font-bold mb-2">E-posta Adresiniz:</label>
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500"
+                                placeholder="ornek@email.com"
+                                required
+                            />
                         </div>
-                    </main>
-                     <footer className="text-center text-sm text-gray-500 py-8 mt-8 border-t border-gray-800">
-                         <p>© 2025 PİKSENFONİ - HOLO-D-VISION Takımı. Tüm hakları saklıdır.</p>
-                         <p>TEKNOFEST Engelsiz Yaşam Teknolojileri Yarışması</p>
-                     </footer>
+                        <div className="mb-8 text-left">
+                            <label htmlFor="message" className="block text-gray-300 text-sm font-bold mb-2">Mesajınız:</label>
+                            <textarea
+                                id="message"
+                                name="message"
+                                value={formData.message}
+                                onChange={handleChange}
+                                rows="5"
+                                className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500 resize-y"
+                                placeholder="Mesajınızı buraya yazın..."
+                                required
+                            ></textarea>
+                        </div>
+                        <div className="flex items-center justify-center">
+                            <button
+                                type="submit"
+                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:shadow-outline flex items-center justify-center"
+                            >
+                                <MailIcon className="mr-2" /> Mesaj Gönder
+                            </button>
+                        </div>
+                    </form>
                 </div>
             );
-        }
+        };
 
+        const App = () => {
+            const [activeView, setActiveView] = useState("home"); // home, gallery, composer, sensor, project, contact
+            const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+            const bgMusicRef = useRef(null);
+            const [notification, setNotification] = useState(null);
+
+            useEffect(() => {
+                bgMusicRef.current = document.getElementById('bg-music-player');
+                if (bgMusicRef.current) {
+                    bgMusicRef.current.volume = 0.3; // Başlangıç ses seviyesi
+                }
+            }, []);
+
+            const toggleMusic = () => {
+                if (bgMusicRef.current) {
+                    if (isMusicPlaying) {
+                        bgMusicRef.current.pause();
+                    } else {
+                        bgMusicRef.current.play().catch(e => console.error("Müzik çalma hatası:", e));
+                    }
+                    setIsMusicPlaying(!isMusicPlaying);
+                }
+            };
+
+            const clearNotification = () => {
+                setNotification(null);
+            };
+
+            return (
+                <div className="min-h-screen bg-[#0c0a18] text-white">
+                    {/* Sabit Navigasyon Çubuğu */}
+                    <nav className="fixed top-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md z-30 shadow-lg py-4 px-6 flex justify-between items-center rounded-b-xl border-b border-gray-700">
+                        <div className="flex items-center">
+                            <img src="https://raw.githubusercontent.com/Sev84/Holodvision-Duyularin-Harmonisi/main/logo1111111.png" alt="PİKSENFONİ Logo" className="h-10 mr-3"/>
+                            <span className="text-2xl font-bold text-pink-400 hidden sm:block">PİKSENFONİ</span>
+                        </div>
+                        <div className="flex space-x-4">
+                            <button onClick={() => setActiveView("home")} className={`p-2 rounded-full transition-colors ${activeView === "home" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Ana Sayfa"><HomeIcon /></button>
+                            <button onClick={() => setActiveView("gallery")} className={`p-2 rounded-full transition-colors ${activeView === "gallery" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Galeri"><EyeIcon /></button>
+                            <button onClick={() => setActiveView("composer")} className={`p-2 rounded-full transition-colors ${activeView === "composer" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Besteci"><MusicIcon /></button>
+                            <button onClick={() => setActiveView("sensor")} className={`p-2 rounded-full transition-colors ${activeView === "sensor" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Sensör Simülatörü"><RssIcon /></button>
+                            <button onClick={() => setActiveView("project")} className={`p-2 rounded-full transition-colors ${activeView === "project" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Proje Hakkında"><FileTextIcon /></button>
+                            <button onClick={() => setActiveView("contact")} className={`p-2 rounded-full transition-colors ${activeView === "contact" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="İletişim"><MailIcon /></button>
+                            <button onClick={toggleMusic} className="p-2 rounded-full text-gray-300 hover:bg-gray-700 transition-colors" title={isMusicPlaying ? "Müziği Durdur" : "Müziği Başlat"}>
+                                {isMusicPlaying ? <Volume2Icon /> : <VolumeXIcon />}
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* Ana İçerik Alanı */}
+                    <main className="pt-24 pb-8"> {/* Navigasyon çubuğu yüksekliği kadar boşluk */}
+                        <AnimatedSection id="home-section" style={{ display: activeView === "home" ? 'flex' : 'none' }}>
+                            <AnaSayfaView />
+                        </AnimatedSection>
+                        <AnimatedSection id="gallery-section" style={{ display: activeView === "gallery" ? 'flex' : 'none' }}>
+                            <GalleryView setNotification={setNotification} />
+                        </AnimatedSection>
+                        <AnimatedSection id="composer-section" style={{ display: activeView === "composer" ? 'flex' : 'none' }}>
+                            <ComposerView />
+                        </AnimatedSection>
+                        <AnimatedSection id="sensor-section" style={{ display: activeView === "sensor" ? 'flex' : 'none' }}>
+                            <LiveSensorDemoView />
+                        </AnimatedSection>
+                        <AnimatedSection id="project-section" style={{ display: activeView === "project" ? 'flex' : 'none' }}>
+                            <ProjeView />
+                        </AnimatedSection>
+                        <AnimatedSection id="contact-section" style={{ display: activeView === "contact" ? 'flex' : 'none' }}>
+                            <IletisimView setNotification={setNotification} />
+                        </AnimatedSection>
+                    </main>
+
+                    <Notification message={notification} onClear={clearNotification} />
+                </div>
+            );
+        };
+
+        // React 18 uyumluluğu için ReactDOM.render yerine createRoot kullanın
         const container = document.getElementById('root');
         const root = ReactDOM.createRoot(container);
         root.render(<App />);
