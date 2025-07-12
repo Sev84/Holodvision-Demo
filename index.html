@@ -76,15 +76,15 @@
         const { useState, useEffect, useRef } = React;
 
         // --- API & GÜVENLİK ---
-        // HATA DÜZELTMESİ: Kotası dolan ElevenLabs API anahtarı kaldırıldı.
-        // Uygulama artık tarayıcının yerleşik sesini kullanacaktır.
-        const ELEVENLABS_API_KEY = "sk_251e97ea2d3764b1f114f76a17c8c9389e637bcc788544d8";
+        // HATA DÜZELTMESİ: ElevenLabs API kotası aşıldığı için devre dışı bırakıldı.
+        // Uygulama artık tarayıcının yerleşik seslendirme özelliğini kullanacaktır.
+        const ELEVENLABS_API_KEY = ""; // ElevenLabs API anahtarı boşaltıldı.
         
         // ÖNEMLİ GÜVENLİK UYARISI: API anahtarlarını doğrudan koda yazmak güvensizdir.
         // Bu anahtar, yetkisiz kişiler tarafından kullanılabilir.
         // Gerçek bir uygulamada, bu anahtarı bir sunucu üzerinden veya güvenli bir ortam değişkeni
         // aracılığıyla yönetmeniz gerekir. Bu örnek için, kendi Gemini API anahtarınızı buraya yapıştırın.
-        const GEMINI_API_KEY = "AIzaSyDjpXSAhc5eCcp4LeW-KItyj7yH-1Sb-bQ";
+        const GEMINI_API_KEY = "AIzaSyA45T_vxxutVkt8F80fljk3nJRRcORhgE"; // GÜNCELLENDİ
 
         // --- ICON BILEŞENLERİ ---
         const EyeIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>);
@@ -117,6 +117,7 @@
                         elevenLabsAudio.pause();
                         elevenLabsAudio.currentTime = 0;
                     }
+                    // ElevenLabs API anahtarı boş veya geçersizse tarayıcı sesine geç
                     if (ELEVENLABS_API_KEY && ELEVENLABS_API_KEY.startsWith("sk_")) {
                         const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
                         const url = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
@@ -275,7 +276,7 @@
                             </div>
                             <button onClick={handleClose} className="text-gray-400 hover:text-white transition-colors"><XCircleIcon size={28} /></button>
                         </div>
-                        <img src={artwork.imageUrl} alt={artwork.artwork} className="w-full h-72 object-cover rounded-xl mb-4 shadow-lg"/>
+                        <img src={artwork.imageUrl} alt={artwork.artwork} className="w-full h-72 object-cover" onError={(e) => { e.target.src=`https://placehold.co/600x400/1f2937/ffffff?text=Resim+Yüklenemedi`; }}/>
                         <audio controls autoPlay className="w-full mb-4" src={artwork.musicUrl}>Tarayıcınız ses çalmayı desteklemiyor.</audio>
                         <p className="text-gray-400 mb-6">{artwork.description}</p>
                         <div className="pt-6 border-t border-gray-700">
@@ -361,7 +362,9 @@
         const LiveSensorDemoView = () => {
             const [detectedColor, setDetectedColor] = useState({ name: 'Bekleniyor...', code: 'default' });
             const [isConnected, setIsConnected] = useState(false);
+            const [isManualMode, setIsManualMode] = useState(false); // Yeni durum: Manuel modda mı?
             const audioRef = useRef(new Audio());
+            const connectionTimeoutRef = useRef(null); // Bağlantı zaman aşımı için ref
 
             const colorData = {
                 krmz: { name: 'Kırmızı', hex: '#ef4444', sound: 'krmz' },
@@ -373,13 +376,53 @@
                 pembe: { name: 'Pembe', hex: '#ec4899', sound: 'pembe' },
             };
 
+            const handleColorChange = (colorCode) => {
+                const colorInfo = colorData[colorCode.toLowerCase().trim()];
+                if (!colorInfo) {
+                    setDetectedColor({ name: 'Bilinmeyen Renk', code: 'default' });
+                    return;
+                };
+                
+                setDetectedColor({ name: colorInfo.name, code: colorCode });
+
+                const audio = audioRef.current;
+                audio.src = `https://sev84.github.io/Holodvision-Piksenfoni-Besteci/${colorInfo.sound}.wav`;
+                audio.play().catch(error => console.error("Ses çalma hatası:", error));
+            };
+            
+            const handleManualSubmit = (e) => {
+                e.preventDefault();
+                handleColorChange(e.target.manualInput.value); // Formdaki input'tan değeri al
+            };
+
             useEffect(() => {
-                // Firebase Realtime Database'den veri dinleme
-                // window.firebaseDb, window.firebaseRef ve window.firebaseOnValue'nun tanımlı olduğundan emin olun
+                console.log("LiveSensorDemoView useEffect çalıştı.");
+                console.log("window.firebaseDb:", window.firebaseDb);
+                console.log("window.firebaseRef:", window.firebaseRef);
+                console.log("window.firebaseOnValue:", window.firebaseOnValue);
+
+                // Bağlantı zaman aşımını başlat
+                connectionTimeoutRef.current = setTimeout(() => {
+                    if (!isConnected) {
+                        console.warn("Firebase bağlantısı zaman aşımına uğradı, manuel moda geçiliyor.");
+                        setIsManualMode(true);
+                    }
+                }, 5000); // 5 saniye sonra kontrol et
+
                 if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) {
                     const colorRef = window.firebaseRef(window.firebaseDb, '/sensorData/color'); // Sensör verisinin yolu
+                    console.log("Firebase colorRef oluşturuldu:", colorRef);
+
                     const unsubscribe = window.firebaseOnValue(colorRef, (snapshot) => {
+                        // Veri geldiğinde zaman aşımını temizle ve manuel modu kapat
+                        if (connectionTimeoutRef.current) {
+                            clearTimeout(connectionTimeoutRef.current);
+                            connectionTimeoutRef.current = null;
+                        }
+                        setIsManualMode(false);
+
                         const colorCode = snapshot.val();
+                        console.log("Firebase'den yeni veri alındı:", colorCode);
                         if (colorCode) {
                             const colorInfo = colorData[colorCode.toLowerCase().trim()];
                             if (colorInfo) {
@@ -387,7 +430,7 @@
                                 const audio = audioRef.current;
                                 audio.src = `https://sev84.github.io/Holodvision-Piksenfoni-Besteci/${colorInfo.sound}.wav`;
                                 audio.play().catch(error => console.error("Ses çalma hatası:", error));
-                                setIsConnected(true); // Veri geliyorsa bağlı kabul et
+                                setIsConnected(true);
                             } else {
                                 setDetectedColor({ name: 'Bilinmeyen Renk', code: 'default' });
                                 setIsConnected(true);
@@ -400,13 +443,21 @@
                         console.error("Firebase'den veri okuma hatası:", error);
                         setDetectedColor({ name: 'Hata!', code: 'default' });
                         setIsConnected(false);
+                        setIsManualMode(true); // Hata durumunda manuel moda geç
                     });
 
                     // Temizleme fonksiyonu
-                    return () => window.firebaseOnValue(colorRef, unsubscribe); // Dinleyiciyi doğru şekilde kaldır
+                    return () => {
+                        console.log("Firebase dinleyicisi temizleniyor.");
+                        unsubscribe();
+                        if (connectionTimeoutRef.current) {
+                            clearTimeout(connectionTimeoutRef.current);
+                        }
+                    }; 
                 } else {
-                    console.warn("Firebase veritabanı veya ilgili fonksiyonlar henüz başlatılmadı.");
+                    console.warn("Firebase veritabanı veya ilgili fonksiyonlar henüz başlatılmadı. Manuel moda geçiliyor.");
                     setIsConnected(false);
+                    setIsManualMode(true); // Firebase başlatılamazsa doğrudan manuel moda geç
                 }
             }, []); // Sadece bir kere çalıştır
 
@@ -422,14 +473,36 @@
                     <h1 className="text-4xl font-bold text-white mb-2">Canlı Sensör Verisi</h1>
                     <p className="text-gray-400 mb-6">Deneyap Kart'tan gelen canlı renk verisi burada gösterilir.</p>
                     
-                    <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-gray-700">
-                        <p className="text-lg text-gray-300 mb-4">
-                            Bağlantı Durumu: <strong className={`font-bold text-xl ${isConnected ? 'text-green-400' : 'text-red-400'}`}>{isConnected ? 'Bağlı' : 'Bağlı Değil'}</strong>
-                        </p>
-                        <p className="text-lg text-gray-300">
-                            Algılanan renk: <strong className="font-bold text-2xl" style={{color: colorData[detectedColor.code]?.hex || '#a78bfa' }}>{detectedColor.name}</strong>
-                        </p>
-                    </div>
+                    {isManualMode ? (
+                        <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-red-500">
+                            <p className="text-lg text-red-300 mb-4">
+                                Firebase bağlantısı kurulamadı veya veri alınamıyor. Manuel simülasyon modundasınız.
+                            </p>
+                            <form onSubmit={handleManualSubmit} className="flex flex-col sm:flex-row gap-4 mb-6">
+                                <input 
+                                    type="text"
+                                    id="manualInput" // ID eklendi
+                                    name="manualInput"
+                                    placeholder="Örn: krmz, mavi, ysl..."
+                                    className="flex-grow p-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                                />
+                                <button type="submit" className="p-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">Renk Gönder</button>
+                            </form>
+                            <p className="text-lg text-gray-300">
+                                Algılanan renk: <strong className="font-bold text-2xl" style={{color: colorData[detectedColor.code]?.hex || '#a78bfa' }}>{detectedColor.name}</strong>
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-gray-700">
+                            <p className="text-lg text-gray-300 mb-4">
+                                Bağlantı Durumu: <strong className={`font-bold text-xl ${isConnected ? 'text-green-400' : 'text-red-400'}`}>{isConnected ? 'Bağlı' : 'Bağlı Değil'}</strong>
+                            </p>
+                            <p className="text-lg text-gray-300">
+                                Algılanan renk: <strong className="font-bold text-2xl" style={{color: colorData[detectedColor.code]?.hex || '#a78bfa' }}>{detectedColor.name}</strong>
+                            </p>
+                        </div>
+                    )}
+                    
                     <p className="text-sm text-gray-500 mt-4">
                         Bu bölüm, Deneyap Kart'tan gelen gerçek zamanlı renk verilerini gösterir.
                         Kartınızın Firebase Realtime Database'e doğru şekilde veri gönderdiğinden emin olun.
@@ -437,14 +510,41 @@
                 </div>
             );
         };
+
+        // WelcomeCard bileşeni AnaSayfaView'den önce tanımlanmalı
+        const WelcomeCard = ({ onStartExperience }) => {
+            const welcomeText = "Piksenfoni'ye hoş geldiniz! Renklerle seslerin buluştuğu bu sınırsız dünyada görme engelli bireyler için sanatı işitsel ve dokunsal bir deneyime dönüştürüyoruz. Deneyime başlamak için aşağıdaki düğmeye tıklayın.";
+
+            const handleStartClick = () => {
+                speakText(welcomeText);
+                onStartExperience(); // Ana sayfada kalmak için bu fonksiyonu çağırabilirsiniz, veya başka bir view'a geçiş yapabilirsiniz.
+            };
+
+            return (
+                <div className="bg-gray-800/70 backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-pink-500 max-w-xl mx-auto text-center">
+                    <h2 className="text-5xl font-bold text-pink-400 mb-6">Hoş Geldiniz!</h2>
+                    <p className="text-lg text-gray-300 mb-8">
+                        Renklerle seslerin buluştuğu sınırsız dünyamıza adım atın.
+                        Görme engelli bireyler için sanatı işitsel ve dokunsal bir deneyime dönüştürüyoruz.
+                    </p>
+                    <button 
+                        onClick={handleStartClick}
+                        className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-10 rounded-full shadow-lg transition-all transform hover:scale-105 flex items-center justify-center mx-auto text-xl"
+                    >
+                        <Volume2Icon className="mr-3" size={28} /> Deneyime Başla
+                    </button>
+                </div>
+            );
+        };
         
-        const AnaSayfaView = () => (
-            <div className="flex flex-col items-center justify-center text-center min-h-[calc(100vh-4rem)]">
+        const AnaSayfaView = ({ onStartExperience }) => (
+            <div className="flex flex-col items-center justify-center text-center min-h-[calc(100vh-4rem)] w-full">
                 <img src="https://raw.githubusercontent.com/Sev84/Holodvision-Duyularin-Harmonisi/main/logo1111111.png" alt="PİKSENFONİ Logo" className="mx-auto mb-8 h-40"/>
                 <h1 className="text-6xl font-bold text-pink-400 mb-4 tracking-wider">PİKSENFONİ</h1>
-                <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-12">
                     Renklerle Seslerin Buluştuğu Sınırsız Dünya: Görme engelli bireyler için sanatı işitsel ve dokunsal bir deneyime dönüştürüyoruz.
                 </p>
+                <WelcomeCard onStartExperience={onStartExperience} />
             </div>
         );
 
@@ -560,6 +660,13 @@
             const bgMusicRef = useRef(null);
             const [notification, setNotification] = useState(null);
 
+            // Hoş Geldiniz seslendirmesi için callback
+            const handleWelcomeExperienceStart = () => {
+                // İsterseniz burada başka bir aksiyon tetikleyebilirsiniz,
+                // örneğin otomatik olarak Galeri görünümüne geçmek gibi:
+                // setActiveView("gallery");
+            };
+
             useEffect(() => {
                 bgMusicRef.current = document.getElementById('bg-music-player');
                 if (bgMusicRef.current) {
@@ -591,12 +698,12 @@
                             <span className="text-2xl font-bold text-pink-400 hidden sm:block">PİKSENFONİ</span>
                         </div>
                         <div className="flex space-x-4">
-                            <button onClick={() => setActiveView("home")} className={`p-2 rounded-full transition-colors ${activeView === "home" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Ana Sayfa"><HomeIcon /></button>
-                            <button onClick={() => setActiveView("gallery")} className={`p-2 rounded-full transition-colors ${activeView === "gallery" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Galeri"><EyeIcon /></button>
-                            <button onClick={() => setActiveView("composer")} className={`p-2 rounded-full transition-colors ${activeView === "composer" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Besteci"><MusicIcon /></button>
-                            <button onClick={() => setActiveView("sensor")} className={`p-2 rounded-full transition-colors ${activeView === "sensor" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Sensör Simülatörü"><RssIcon /></button>
-                            <button onClick={() => setActiveView("project")} className={`p-2 rounded-full transition-colors ${activeView === "project" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Proje Hakkında"><FileTextIcon /></button>
-                            <button onClick={() => setActiveView("contact")} className={`p-2 rounded-full transition-colors ${activeView === "contact" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="İletişim"><MailIcon /></button>
+                            <button onClick={() => setActiveView("home")} className={`p-2 rounded-full transition-colors flex items-center ${activeView === "home" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Ana Sayfa"><HomeIcon className="mr-1" /> <span className="hidden sm:inline">Ana Sayfa</span></button>
+                            <button onClick={() => setActiveView("gallery")} className={`p-2 rounded-full transition-colors flex items-center ${activeView === "gallery" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Galeri"><EyeIcon className="mr-1" /> <span className="hidden sm:inline">Galeri</span></button>
+                            <button onClick={() => setActiveView("composer")} className={`p-2 rounded-full transition-colors flex items-center ${activeView === "composer" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Besteci"><MusicIcon className="mr-1" /> <span className="hidden sm:inline">Besteci</span></button>
+                            <button onClick={() => setActiveView("sensor")} className={`p-2 rounded-full transition-colors flex items-center ${activeView === "sensor" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Sensör Simülatörü"><RssIcon className="mr-1" /> <span className="hidden sm:inline">Sensör</span></button>
+                            <button onClick={() => setActiveView("project")} className={`p-2 rounded-full transition-colors flex items-center ${activeView === "project" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Proje Hakkında"><FileTextIcon className="mr-1" /> <span className="hidden sm:inline">Proje</span></button>
+                            <button onClick={() => setActiveView("contact")} className={`p-2 rounded-full transition-colors flex items-center ${activeView === "contact" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="İletişim"><MailIcon className="mr-1" /> <span className="hidden sm:inline">İletişim</span></button>
                             <button onClick={toggleMusic} className="p-2 rounded-full text-gray-300 hover:bg-gray-700 transition-colors" title={isMusicPlaying ? "Müziği Durdur" : "Müziği Başlat"}>
                                 {isMusicPlaying ? <Volume2Icon /> : <VolumeXIcon />}
                             </button>
@@ -606,7 +713,7 @@
                     {/* Ana İçerik Alanı */}
                     <main className="pt-24 pb-8"> {/* Navigasyon çubuğu yüksekliği kadar boşluk */}
                         <AnimatedSection id="home-section" style={{ display: activeView === "home" ? 'flex' : 'none' }}>
-                            <AnaSayfaView />
+                            <AnaSayfaView onStartExperience={handleWelcomeExperienceStart} />
                         </AnimatedSection>
                         <AnimatedSection id="gallery-section" style={{ display: activeView === "gallery" ? 'flex' : 'none' }}>
                             <GalleryView setNotification={setNotification} />
