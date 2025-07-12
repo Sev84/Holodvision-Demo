@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" style="scroll-behavior: smooth;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,7 +51,9 @@
         const { useState, useEffect, useRef } = React;
 
         // --- API & GÜVENLİK ---
-        const ELEVENLABS_API_KEY = "sk_251e97ea2d3764b1f114f76a17c8c9389e637bcc788544d8";
+        // HATA DÜZELTMESİ: Kotası dolan ElevenLabs API anahtarı kaldırıldı.
+        // Uygulama artık tarayıcının yerleşik sesini kullanacaktır.
+        const ELEVENLABS_API_KEY = "";
         const GEMINI_API_KEY = "AIzaSyDjpXSAhc5eCcp4LeW-KItyj7yH-1Sb-bQ";
 
         // --- ICON BILEŞENLERİ ---
@@ -547,12 +549,14 @@
                         </div>
                     </nav>
                     <main className="flex justify-center items-center">
-                        {view === 'anasayfa' && <AnaSayfaView />}
-                        {view === 'proje' && <ProjeView />}
-                        {view === 'gallery' && <GalleryView setNotification={setNotification} />}
-                        {view === 'composer' && <ComposerView />}
-                        {view === 'sensor' && <LiveSensorDemoView />}
-                        {view === 'iletisim' && <IletisimView />}
+                        <div className="container mx-auto">
+                            {view === 'anasayfa' && <AnimatedSection><AnaSayfaView /></AnimatedSection>}
+                            {view === 'proje' && <AnimatedSection><ProjeView /></AnimatedSection>}
+                            {view === 'gallery' && <AnimatedSection><GalleryView setNotification={setNotification} /></AnimatedSection>}
+                            {view === 'composer' && <AnimatedSection><ComposerView /></AnimatedSection>}
+                            {view === 'sensor' && <AnimatedSection><LiveSensorDemoView /></AnimatedSection>}
+                            {view === 'iletisim' && <AnimatedSection><IletisimView /></AnimatedSection>}
+                        </div>
                     </main>
                      <footer className="text-center text-sm text-gray-500 py-8 mt-8 border-t border-gray-800">
                          <p>© 2025 PİKSENFONİ - HOLO-D-VISION Takımı. Tüm hakları saklıdır.</p>
@@ -567,4 +571,4 @@
         root.render(<App />);
     </script>
 </body>
-</ht
+</html>
