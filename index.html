@@ -53,7 +53,12 @@
         // --- API & GÜVENLİK ---
         // HATA DÜZELTMESİ: Kotası dolan ElevenLabs API anahtarı kaldırıldı.
         // Uygulama artık tarayıcının yerleşik sesini kullanacaktır.
-        const ELEVENLABS_API_KEY = "";
+        const ELEVENLABS_API_KEY = "sk_251e97ea2d3764b1f114f76a17c8c9389e637bcc788544d8";
+        
+        // ÖNEMLİ GÜVENLİK UYARISI: API anahtarlarını doğrudan koda yazmak güvensizdir.
+        // Bu anahtar, yetkisiz kişiler tarafından kullanılabilir.
+        // Gerçek bir uygulamada, bu anahtarı bir sunucu üzerinden veya güvenli bir ortam değişkeni
+        // aracılığıyla yönetmeniz gerekir. Bu örnek için, kendi Gemini API anahtarınızı buraya yapıştırın.
         const GEMINI_API_KEY = "AIzaSyDjpXSAhc5eCcp4LeW-KItyj7yH-1Sb-bQ";
 
         // --- ICON BILEŞENLERİ ---
@@ -195,11 +200,15 @@
 
             const getArtAnalysis = async () => {
                 if (!artwork || isAnalyzing) return;
+                if (GEMINI_API_KEY === "AIzaSyDjpXSAhc5eCcp4LeW-KItyj7yH-1Sb-bQ") {
+                    setNotification("Lütfen geçerli bir Gemini API anahtarı girin.");
+                    return;
+                }
                 setIsAnalyzing(true);
                 setAnalysisText("");
                 try {
                     const prompt = `Sen bir sanat tarihçisisin. Görme engelli bir kullanıcı için ${artwork.artist} tarafından yapılan '${artwork.artwork}' adlı tabloyu canlı, duygusal ve erişilebilir bir dille betimle. Renklerin hissettirdiği duyguları, tablonun atmosferini, kullanılan teknikleri ve olası hikayesini anlat. Cevabın bilgilendirici ve şiirsel olsun.`;
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
                     const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
                     const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                     if (!response.ok) throw new Error(`Gemini API çağrısı başarısız: ${response.status}`);
@@ -212,26 +221,34 @@
                         throw new Error("API'den geçersiz yanıt formatı alındı.");
                     }
                 } catch (error) {
-                    console.error("Yapay zeka analizi sırasında hata:", error);
-                    const errorMessage = `Analiz sırasında bir hata oluştu. Lütfen internet bağlantınızı kontrol edin.`;
-                    setAnalysisText(`[HATA] ${errorMessage}`);
-                    setNotification(errorMessage);
-                    await speakText(errorMessage).catch(e => console.error("Hata mesajı okunurken hata:", e));
+                    if (error.message?.includes('interrupted')) {
+                        console.log("Analiz seslendirmesi kullanıcı tarafından kesildi.");
+                    } else {
+                        console.error("Yapay zeka analizi sırasında hata:", error);
+                        const errorMessage = `Analiz sırasında bir hata oluştu. Lütfen API anahtarınızı ve internet bağlantınızı kontrol edin.`;
+                        setAnalysisText(`[HATA] ${errorMessage}`);
+                        setNotification(errorMessage);
+                    }
                 } finally {
                     setIsAnalyzing(false);
                 }
+            };
+
+            const handleClose = () => {
+                window.speechSynthesis.cancel();
+                onClose();
             };
 
             if (!artwork) return null;
             return (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-40 p-4">
                     <div className="bg-gradient-to-br from-gray-900 to-[#1a1a2e] p-6 rounded-2xl shadow-2xl border border-red-500/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                         <div className="flex justify-between items-start mb-4">
+                        <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h2 className="text-3xl font-bold text-red-400">{artwork.artwork}</h2>
                                 <p className="text-gray-300 text-lg">{artwork.artist}</p>
                             </div>
-                            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors"><XCircleIcon size={28} /></button>
+                            <button onClick={handleClose} className="text-gray-400 hover:text-white transition-colors"><XCircleIcon size={28} /></button>
                         </div>
                         <img src={artwork.imageUrl} alt={artwork.artwork} className="w-full h-72 object-cover rounded-xl mb-4 shadow-lg"/>
                         <audio controls autoPlay className="w-full mb-4" src={artwork.musicUrl}>Tarayıcınız ses çalmayı desteklemiyor.</audio>
@@ -290,14 +307,14 @@
                     <h2 className="text-4xl font-bold text-center mb-12">Eser Galerisi</h2>
                     <div className="max-w-3xl mx-auto mb-8 sticky top-20 z-20 bg-gray-900/70 backdrop-blur-md p-4 rounded-xl border border-gray-700">
                         <div className="grid md:grid-cols-2 gap-4 items-end">
-                             <div>
-                                <label htmlFor="category-filter" className="block mb-2 font-medium text-gray-300">Kategoriye Göre Filtrele</label>
-                                <select id="category-filter" className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-white" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                                    <option value="Tümü">Tümü</option>
-                                    <option value="Klasik">Klasik</option>
-                                    <option value="Kübist">Kübist</option>
-                                </select>
-                            </div>
+                                <div>
+                                    <label htmlFor="category-filter" className="block mb-2 font-medium text-gray-300">Kategoriye Göre Filtrele</label>
+                                    <select id="category-filter" className="w-full p-3 bg-gray-800 border border-gray-600 rounded-lg text-white" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                                        <option value="Tümü">Tümü</option>
+                                        <option value="Klasik">Klasik</option>
+                                        <option value="Kübist">Kübist</option>
+                                    </select>
+                                </div>
                             <button onClick={() => setIsScanning(true)} className="w-full p-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg flex items-center justify-center"><CameraIcon className="mr-2" /> QR Kod Tara</button>
                         </div>
                     </div>
@@ -475,9 +492,10 @@
         };
 
         function App() {
-            const [view, setView] = useState('welcome'); // Başlangıç ekranı
+            const [view, setView] = useState('welcome');
             const [notification, setNotification] = useState("");
             const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+            const [isStarting, setIsStarting] = useState(false);
 
             const toggleMusic = (forcePlay = null) => {
                 const bgMusic = document.getElementById('bg-music-player');
@@ -493,6 +511,9 @@
             };
             
             const handleStartExperience = async () => {
+                if (isStarting) return;
+                setIsStarting(true);
+
                 const welcomeText = "Piksenfoni'ye hoş geldiniz. Sanatı deneyimlemek, bestelemek ve canlı sensörlerle etkileşime geçmek için sekmeleri kullanın.";
                 try {
                     await speakText(welcomeText);
@@ -513,12 +534,14 @@
             if (view === 'welcome') {
                 return (
                     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4">
-                         <div className="bg-gradient-to-br from-gray-900 to-[#1a1a2e] p-8 rounded-2xl shadow-2xl border border-red-500/50 max-w-lg w-full text-center">
-                             <img src="https://raw.githubusercontent.com/Sev84/Holodvision-Duyularin-Harmonisi/main/logo1111111.png" alt="PİKSENFONİ Logo" className="mx-auto mb-4 h-20"/>
-                             <h2 className="text-3xl font-bold text-red-400 mb-4">PİKSENFONİ'ye Hoş Geldiniz!</h2>
-                             <p className="text-gray-300 mb-8">Sanatı deneyimlemek, bestelemek ve canlı sensörlerle etkileşime geçmek için sekmeleri kullanın.</p>
-                             <button onClick={handleStartExperience} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg">Deneyime Başla</button>
-                         </div>
+                        <div className="bg-gradient-to-br from-gray-900 to-[#1a1a2e] p-8 rounded-2xl shadow-2xl border border-red-500/50 max-w-lg w-full text-center">
+                            <img src="https://raw.githubusercontent.com/Sev84/Holodvision-Duyularin-Harmonisi/main/logo1111111.png" alt="PİKSENFONİ Logo" className="mx-auto mb-4 h-20"/>
+                            <h2 className="text-3xl font-bold text-red-400 mb-4">PİKSENFONİ'ye Hoş Geldiniz!</h2>
+                            <p className="text-gray-300 mb-8">Sanatı deneyimlemek, bestelemek ve canlı sensörlerle etkileşime geçmek için sekmeleri kullanın.</p>
+                            <button onClick={handleStartExperience} disabled={isStarting} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                                {isStarting ? 'Başlatılıyor...' : 'Deneyime Başla'}
+                            </button>
+                        </div>
                     </div>
                 );
             }
@@ -530,7 +553,7 @@
                     
                     <nav className="bg-black/20 backdrop-blur-md sticky w-full z-30 top-0">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                             <div className="flex items-center justify-between h-16">
+                            <div className="flex items-center justify-between h-16">
                                 <div className="flex items-center">
                                     <img className="h-10 cursor-pointer" src="https://raw.githubusercontent.com/Sev84/Holodvision-Duyularin-Harmonisi/main/logo1111111.png" alt="Logo" onClick={() => setView('anasayfa')}/>
                                     <button onClick={() => toggleMusic()} className="ml-4 text-gray-300 hover:text-white transition-colors p-2 rounded-full hover:bg-red-700/50">
@@ -545,7 +568,7 @@
                                     <NavButton targetView="composer" icon={<MusicIcon />}>Besteci</NavButton>
                                     <NavButton targetView="iletisim" icon={<MailIcon />}>İletişim</NavButton>
                                 </div>
-                             </div>
+                            </div>
                         </div>
                     </nav>
                     <main className="flex justify-center items-center">
