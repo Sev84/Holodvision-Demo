@@ -70,6 +70,15 @@
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; margin-top: -6px; background-color: #e94560; height: 16px; width: 16px; border-radius: 50%; }
         input[type=range]::-moz-range-track { background: #4a5568; height: 4px; border-radius: 2px; }
         input[type=range]::-moz-range-thumb { border: none; border-radius: 50%; background-color: #e94560; height: 16px; width: 16px; }
+        
+        /* Terminal imleci için animasyon */
+        .blinking-cursor {
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { color: transparent; }
+            50% { color: #34d399; } /* İmleç rengi */
+        }
     </style>
 </head>
 <body>
@@ -288,12 +297,12 @@
         const ProjeView = () => ( <div className="w-full max-w-5xl mx-auto"> <h2 className="text-4xl font-bold text-center mb-12">Proje Hakkında</h2> <div className="grid md:grid-cols-3 gap-8 mb-16 text-center"> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Amacımız</h3> <p className="text-gray-400">Görme engelli bireylerin sanata erişimini artırmak ve sanat eserlerini çoklu duyusal yollarla, özgürce deneyimlemelerini sağlamak.</p> </div> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Teknolojimiz</h3> <p className="text-gray-400">RGB renk sensörlü akıllı eldiven, renkleri notalara ve titreşimlere dönüştürür. QR kod tabanlı web uygulamamız ise eserlere özel müziklere anında erişim sunar.</p> </div> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Hedef Kitlemiz</h3> <p className="text-gray-400">Görme engelli bireyler, özel eğitim kurumları, müzeler, sanat galerileri ve sanata erişilebilir bir pencereden bakmak isteyen herkes.</p> </div> </div> <div className="text-center bg-gray-800/50 p-8 rounded-xl"> <h3 className="text-3xl font-bold mb-4">Renk ve Ses Eldiveni</h3> <p className="text-gray-400 max-w-2xl mx-auto mb-6">Eldiveni kullanarak tablolardaki renklere dokunun ve notaları duyun. Sanatla aranızdaki engelleri kaldırın.</p> <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"> ⚡ Firebase Bağlantısı Kuruldu </button> <p className="text-sm text-gray-500 mt-3">Canlı sensör verisi için "Sensör" bölümünü ziyaret edin.</p> </div> </div> );
         const IletisimView = ({ setNotification }) => { const [formData, setFormData] = useState({ name: '', email: '', message: '' }); const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); }; const handleSubmit = (e) => { e.preventDefault(); console.log("İletişim Formu Gönderildi:", formData); setNotification("Mesajınız başarıyla gönderildi! Teşekkür ederiz."); setFormData({ name: '', email: '', message: '' }); }; return ( <div className="w-full max-w-2xl mx-auto text-center"> <h2 className="text-4xl font-bold mb-4">İletişim</h2> <p className="text-gray-400 mb-8">Sorularınız, geri bildirimleriniz veya işbirliği teklifleriniz için bizimle iletişime geçin.</p> <form onSubmit={handleSubmit} className="bg-gray-800/50 p-8 rounded-xl shadow-lg border border-gray-700"> <div className="mb-6 text-left"> <label htmlFor="name" className="block text-gray-300 text-sm font-bold mb-2">Adınız:</label> <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500" placeholder="Adınız Soyadınız" required /> </div> <div className="mb-6 text-left"> <label htmlFor="email" className="block text-gray-300 text-sm font-bold mb-2">E-posta Adresiniz:</label> <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500" placeholder="ornek@email.com" required /> </div> <div className="mb-8 text-left"> <label htmlFor="message" className="block text-gray-300 text-sm font-bold mb-2">Mesajınız:</label> <textarea id="message" name="message" value={formData.message} onChange={handleChange} rows="5" className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500 resize-y" placeholder="Mesajınızı buraya yazın..." required ></textarea> </div> <div className="flex items-center justify-center"> <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:shadow-outline flex items-center justify-center"> <MailIcon className="mr-2" /> Mesaj Gönder </button> </div> </form> </div> ); };
         
-        // YENİ: LiveSensorDemoView, renk geçmişi özelliği ile güncellendi.
+        // YENİ: LiveSensorDemoView, Piksel Defteri ve Terminal ile güncellendi.
         const LiveSensorDemoView = () => {
             const [detectedColor, setDetectedColor] = useState({ name: 'Bekleniyor...', code: 'default' });
             const [isConnected, setIsConnected] = useState(false);
             const [isManualMode, setIsManualMode] = useState(false);
-            const [colorHistory, setColorHistory] = useState([]); // Renk geçmişi için state
+            const [colorHistory, setColorHistory] = useState([]);
             const audioRef = useRef(new Audio());
             const connectionTimeoutRef = useRef(null);
             const colorData = { krmz: { name: 'Kırmızı', hex: '#ef4444', sound: 'krmz' }, ysl: { name: 'Yeşil', hex: '#22c55e', sound: 'ysl' }, mavi: { name: 'Mavi', hex: '#3b82f6', sound: 'mavi' }, sari: { name: 'Sarı', hex: '#eab308', sound: 'sari' }, trnc: { name: 'Turuncu', hex: '#f97316', sound: 'trnc' }, mor: { name: 'Mor', hex: '#8b5cf6', sound: 'mor' }, pembe: { name: 'Pembe', hex: '#ec4899', sound: 'pmb' }, };
@@ -320,10 +329,10 @@
                     setDetectedColor({ name: 'Bilinmeyen Renk', code: 'default' });
                     return; 
                 }
-                setDetectedColor({ name: colorInfo.name, code: colorCode });
-                playColorSound(colorInfo);
-                // Renk geçmişini güncelle (son 10 rengi tut)
-                setColorHistory(prevHistory => [...prevHistory, colorInfo].slice(-10));
+                const newColor = { ...colorInfo, code: colorCode };
+                setDetectedColor(newColor);
+                playColorSound(newColor);
+                setColorHistory(prevHistory => [...prevHistory, newColor].slice(-50)); // Geçmişi 50 ile sınırla
             };
 
             const handleManualSubmit = (e) => { 
@@ -376,7 +385,7 @@
             useEffect(() => { 
                 const rootElement = document.getElementById('root'); 
                 if (rootElement) { 
-                    rootElement.style.backgroundColor = colorData[detectedColor.code]?.hex || ''; 
+                    rootElement.style.backgroundColor = detectedColor.hex || ''; 
                 } 
                 return () => { 
                     const rootElement = document.getElementById('root'); 
@@ -386,8 +395,10 @@
                 } 
             }, [detectedColor]);
 
+            const pixelGrid = Array.from({ length: 50 }, (_, i) => colorHistory[i] || null);
+
             return ( 
-                <div className="w-full max-w-2xl mx-auto text-center flex flex-col">
+                <div className="w-full max-w-4xl mx-auto text-center flex flex-col">
                     <div className="flex-grow">
                         <h1 className="text-4xl font-bold text-white mb-2">Canlı Sensör Verisi</h1>
                         <p className="text-gray-400 mb-6">Deneyap Kart'tan gelen canlı renk verisi burada gösterilir.</p>
@@ -406,27 +417,32 @@
                                 <p className="text-lg text-gray-300"> Algılanan renk: <strong className="font-bold text-2xl" style={{color: detectedColor.hex || '#a78bfa' }}>{detectedColor.name}</strong> </p>
                             </div> 
                         )}
-                        <p className="text-sm text-gray-500 mt-4"> Bu bölüm, Deneyap Kart'tan gelen gerçek zamanlı renk verilerini gösterir. </p>
                     </div>
                     
-                    {/* YENİ: Renk Geçmişi Bölümü */}
                     <div className="mt-8 w-full">
-                        <h3 className="text-2xl font-bold text-white mb-4">Renk Geçmişi</h3>
-                        <div className="bg-gray-900/70 p-4 rounded-xl flex justify-center items-center gap-2 min-h-[60px]">
-                            {colorHistory.length > 0 ? (
-                                colorHistory.map((color, index) => (
-                                    <div key={index} className="flex flex-col items-center gap-1">
-                                        <span className="text-xs text-gray-400">{colorData[color.code]?.sound || ''}</span>
-                                        <div 
-                                            className="w-10 h-10 rounded-lg"
-                                            style={{ backgroundColor: color.hex }}
-                                            title={color.name}
-                                        ></div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-gray-500">Henüz bir renk algılanmadı.</p>
-                            )}
+                        <h3 className="text-2xl font-bold text-white mb-4">Piksel Defteri</h3>
+                        <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 aspect-[10/5] w-full max-w-lg mx-auto">
+                            <div className="grid grid-cols-10 grid-rows-5 h-full gap-1">
+                                {pixelGrid.map((color, index) => (
+                                    <div 
+                                        key={index}
+                                        className="w-full h-full rounded"
+                                        style={{ backgroundColor: color ? color.hex : '#1f2937' }}
+                                        title={color ? color.name : 'Boş'}
+                                    ></div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 w-full">
+                        <h3 className="text-2xl font-bold text-white mb-4">Nota Terminali</h3>
+                        <div className="bg-black font-mono text-left p-4 rounded-xl w-full max-w-lg mx-auto border border-gray-700">
+                            <p className="text-green-400 break-words">
+                                <span className="text-gray-500">$ </span>
+                                {colorHistory.map(c => c.sound).join(' ')}
+                                <span className="blinking-cursor">█</span>
+                            </p>
                         </div>
                     </div>
                 </div>
