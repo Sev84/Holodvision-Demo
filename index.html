@@ -161,7 +161,6 @@
             if (window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
             }
-            // Kısa bir gecikme, cancel işleminin tamamlanmasına izin verir.
             setTimeout(() => {
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'tr-TR';
@@ -546,7 +545,7 @@
             return ( <div className="w-full max-w-2xl mx-auto text-center"> <h2 className="text-4xl font-bold mb-4">İletişim</h2> <p className="text-gray-400 mb-8">Sorularınız, geri bildirimleriniz veya işbirliği teklifleriniz için bizimle iletişime geçin.</p> <form onSubmit={handleSubmit} className="bg-gray-800/50 p-8 rounded-xl shadow-lg border border-gray-700"> <div className="mb-6 text-left"> <label htmlFor="name" className="block text-gray-300 text-sm font-bold mb-2">Adınız:</label> <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500" placeholder="Adınız Soyadınız" required /> </div> <div className="mb-6 text-left"> <label htmlFor="email" className="block text-gray-300 text-sm font-bold mb-2">E-posta Adresiniz:</label> <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500" placeholder="ornek@email.com" required /> </div> <div className="mb-8 text-left"> <label htmlFor="message" className="block text-gray-300 text-sm font-bold mb-2">Mesajınız:</label> <textarea id="message" name="message" value={formData.message} onChange={handleChange} rows="5" className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500 resize-y" placeholder="Mesajınızı buraya yazın..." required ></textarea> </div> <div className="flex items-center justify-center"> <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:shadow-outline flex items-center justify-center"> <MailIcon className="mr-2" /> Mesaj Gönder </button> </div> </form> </div> );
         };
         
-        const LiveSensorDemoView = ({openApiModal, setNotification}) => {
+        const LiveSensorDemoView = ({openApiModal, setNotification, setActiveView}) => {
             const [detectedColor, setDetectedColor] = useState({ name: 'Bekleniyor...', code: 'default' });
             const [isConnected, setIsConnected] = useState(false);
             const [isManualMode, setIsManualMode] = useState(false);
@@ -734,7 +733,8 @@
                         <p className="text-gray-400 mb-6">Deneyap Kart'tan gelen canlı renk verisi burada gösterilir.</p>
                         {isManualMode ? ( 
                             <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-red-500">
-                                <p className="text-lg text-red-300 mb-4"> Firebase bağlantısı kurulamadı. Manuel simülasyon modundasınız. </p>
+                                <p className="text-lg text-red-300 mb-2"> Bağlantı Durumu: <strong className="font-bold text-xl text-red-400">Bağlı Değil</strong></p>
+                                <p className="text-sm text-gray-500 mb-4">Pikseni Renk Eldiveni ile bu kısım çalışır.</p>
                                 <form onSubmit={handleManualSubmit} className="flex flex-col sm:flex-row gap-4 mb-6">
                                     <input type="text" id="manualInput" name="manualInput" placeholder="Örn: krmz, mavi, ysl..." className="flex-grow p-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500" />
                                     <button type="submit" className="p-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">Renk Gönder</button>
@@ -743,7 +743,8 @@
                             </div> 
                         ) : ( 
                             <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-gray-700">
-                                <p className="text-lg text-gray-300 mb-4"> Bağlantı Durumu: <strong className={`font-bold text-xl ${isConnected ? 'text-green-400' : 'text-red-400'}`}>{isConnected ? 'Bağlı' : 'Bağlı Değil'}</strong> </p>
+                                <p className="text-lg text-green-400 mb-2"> Bağlantı Durumu: <strong className="font-bold text-xl">Bağlı</strong></p>
+                                <p className="text-sm text-gray-500 mb-4">Pikseni Renk Eldiveni ile bu kısım çalışır.</p>
                                 <p className="text-lg text-gray-300"> Algılanan renk: <strong className="font-bold text-2xl" style={{color: detectedColor.hex || '#a78bfa' }}>{detectedColor.name}</strong> </p>
                             </div> 
                         )}
@@ -800,6 +801,11 @@
                         </div>
                     )}
 
+                    <div className="mt-12 w-full max-w-md mx-auto p-4 border-t-2 border-dashed border-purple-500">
+                        <button onClick={() => setActiveView('composer')} className="text-purple-300 hover:text-purple-200 transition-colors text-lg">
+                            🎨🎵👉 RENK VE NOTA bestelemek için **Besteci** menüsüne gidebilirsiniz.
+                        </button>
+                    </div>
                 </div>
             ); 
         };
@@ -868,7 +874,7 @@
                 });
                 setIsMusicPlaying(true);
                 setShowIntroAnimation(true);
-                setTimeout(() => setShowIntroAnimation(false), 6000); // Animasyon 6 saniye sürer
+                setTimeout(() => setShowIntroAnimation(false), 6000);
             };
 
             const stopAllAudio = () => {
@@ -906,7 +912,7 @@
             }
 
             return (
-                <div className="min-h-screen text-white">
+                <div className="min-h-screen text-white flex flex-col">
                     <nav className="fixed top-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md z-30 shadow-lg py-3 px-6 flex justify-between items-center rounded-b-xl border-b border-gray-700">
                         <div className="flex items-center">
                             <img src="https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/logo1111111.png" alt="PİKSENFONİ Logosu" className="h-10 mr-3"/>
@@ -947,11 +953,11 @@
                         </div>
                     </nav>
 
-                    <main className="pt-24 pb-8">
+                    <main className="pt-24 pb-8 flex-grow">
                         <div style={{ display: activeView === "home" ? 'block' : 'none' }}><AnimatedSection><AnaSayfaView /></AnimatedSection></div>
                         <div style={{ display: activeView === "gallery" ? 'block' : 'none' }}><AnimatedSection><GalleryView setNotification={setNotification} /></AnimatedSection></div>
                         <div style={{ display: activeView === "composer" ? 'block' : 'none' }}><AnimatedSection><ComposerView /></AnimatedSection></div>
-                        <div style={{ display: activeView === "sensor" ? 'block' : 'none' }}><AnimatedSection><LiveSensorDemoView openApiModal={() => setIsApiModalOpen(true)} setNotification={setNotification} /></AnimatedSection></div>
+                        <div style={{ display: activeView === "sensor" ? 'block' : 'none' }}><AnimatedSection><LiveSensorDemoView openApiModal={() => setIsApiModalOpen(true)} setNotification={setNotification} setActiveView={setActiveView} /></AnimatedSection></div>
                         <div style={{ display: activeView === "project" ? 'block' : 'none' }}><AnimatedSection><ProjeView /></AnimatedSection></div>
                         <div style={{ display: activeView === "contact" ? 'block' : 'none' }}><AnimatedSection><IletisimView setNotification={setNotification} /></AnimatedSection></div>
                     </main>
