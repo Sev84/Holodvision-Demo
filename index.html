@@ -126,7 +126,22 @@
             );
         };
 
-        // --- GALERİ BİLEŞENLERİ ---
+        // --- SAYFA GÖRÜNÜM BİLEŞENLERİ ---
+
+        // DÜZELTME: Ana Sayfa bileşeni yeniden eklendi.
+        const AnaSayfaView = () => (
+            <div className="flex flex-col items-center justify-center text-center w-full">
+                <img src="https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/logo1111111.png" alt="PİKSENFONİ Logo" className="mx-auto mb-8 h-40"/>
+                <h1 className="text-6xl font-bold text-pink-400 mb-4 tracking-wider">PİKSENFONİ</h1>
+                <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                    Renklerle Seslerin Buluştuğu Sınırsız Dünya: Sanatı herkes için erişilebilir kılıyoruz.
+                </p>
+                <p className="text-lg text-gray-400 mt-8">
+                    Deneyime devam etmek için yukarıdaki menüden bir bölüm seçin.
+                </p>
+            </div>
+        );
+
         const ArtCard = ({ item, onSelect }) => (
             <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl overflow-hidden shadow-lg transform hover:scale-105 transition-transform duration-300 cursor-pointer" onClick={() => onSelect(item)}>
                 <img src={item.imageUrl} alt={item.artwork} className="w-full h-56 object-cover" onError={(e) => { e.target.src=`https://placehold.co/600x400/1f2937/ffffff?text=Resim+Yüklenemedi`; }}/>
@@ -137,6 +152,27 @@
                 </div>
             </div>
         );
+        
+        const ArtworkDetailModal = ({ artwork, onClose, setNotification }) => { 
+            if (!artwork) return null; 
+            return ( 
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-40 p-4"> 
+                    <div className="bg-gradient-to-br from-gray-900 to-[#1a1a2e] p-6 rounded-2xl shadow-2xl border border-red-500/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto"> 
+                        <div className="flex justify-between items-start mb-4"> 
+                            <div> 
+                                <h2 className="text-3xl font-bold text-red-400">{artwork.artwork}</h2> 
+                                <p className="text-gray-300 text-lg">{artwork.artist}</p> 
+                            </div> 
+                            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors"><XCircleIcon size={28} /></button> 
+                        </div> 
+                        {/* DÜZELTME: 'item' yerine 'artwork' kullanıldı */}
+                        <img src={artwork.imageUrl} alt={artwork.artwork} className="w-full h-72 object-cover rounded-lg mb-4" onError={(e) => { e.target.src=`https://placehold.co/600x400/1f2937/ffffff?text=Resim+Yüklenemedi`; }}/> 
+                        <audio controls autoPlay className="w-full mb-4" src={artwork.musicUrl}>Tarayıcınız ses çalmayı desteklemiyor.</audio> 
+                        <p className="text-gray-300 mb-6 text-base">{artwork.description}</p> 
+                    </div> 
+                </div> 
+            ); 
+        };
 
         const GalleryView = ({setNotification}) => {
             const [allArtworks, setAllArtworks] = useState([]);
@@ -147,10 +183,7 @@
             const [isScanning, setIsScanning] = useState(false);
             
             useEffect(() => {
-                // GÜNCELLEME: Resimlerin bulunduğu doğru repo adresi.
                 const repoBaseUrl = "https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/";
-                
-                // GÜNCELLEME: Eser açıklamaları daha detaylı hale getirildi.
                 const artworksData = [
                     { "id": 1, "artwork": "Mona Lisa", "qr": "MONA_ORJ", "musicUrl": `${repoBaseUrl}Monalisa%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Monalisa.jpeg`, "artist": "Leonardo da Vinci", "description": "Rönesans'ın simgesi haline gelmiş, gizemli gülümsemesiyle milyonları büyüleyen bu portre, sfumato tekniğinin en bilinen örneğidir.", "category": "Klasik" },
                     { "id": 2, "artwork": "İnci Küpeli Kız", "qr": "INCI_ORJ", "musicUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız.jpeg`, "artist": "Johannes Vermeer", "description": "Hollanda'nın Mona Lisa'sı olarak bilinen bu eser, anlık bir bakışın ve ışığın ustaca kullanımının yarattığı duygu yoğunluğuyla tanınır.", "category": "Klasik" },
@@ -194,8 +227,6 @@
             );
         };
         
-        // Diğer View bileşenleri (Proje, İletişim vs.) burada yer alıyor, onlarda değişiklik yok.
-        // ...
         const LiveSensorDemoView = () => {
             const [detectedColor, setDetectedColor] = useState({ name: 'Bekleniyor...', code: 'default' });
             const [isConnected, setIsConnected] = useState(false);
@@ -218,14 +249,11 @@
         const App = () => {
             const [activeView, setActiveView] = useState("home");
             const [notification, setNotification] = useState(null);
-            
-            // GÜNCELLEME: Yeni durumlar eklendi
             const [isExperienceStarted, setIsExperienceStarted] = useState(false);
             const [isMusicPlaying, setIsMusicPlaying] = useState(false);
-            const [bgMusicVolume, setBgMusicVolume] = useState(0.3); // Başlangıç ses seviyesi
+            const [bgMusicVolume, setBgMusicVolume] = useState(0.3);
             const bgMusicRef = useRef(null);
 
-            // Arka plan müziği referansını ve başlangıç sesini ayarla
             useEffect(() => {
                 bgMusicRef.current = document.getElementById('bg-music-player');
                 if (bgMusicRef.current) {
@@ -233,10 +261,8 @@
                 }
             }, []);
             
-            // GÜNCELLEME: Deneyimi başlatan fonksiyon
             const handleWelcomeStart = () => {
                 setIsExperienceStarted(true);
-                // Arka plan müziğini başlat
                 if (bgMusicRef.current) {
                     bgMusicRef.current.play().catch(e => console.error("Arka plan müziği çalma hatası:", e));
                     setIsMusicPlaying(true);
@@ -254,7 +280,6 @@
                 }
             };
 
-            // GÜNCELLEME: Ses ayar çubuğu için fonksiyon
             const handleVolumeChange = (e) => {
                 const newVolume = parseFloat(e.target.value);
                 setBgMusicVolume(newVolume);
@@ -265,7 +290,6 @@
 
             const clearNotification = () => setNotification(null);
 
-            // GÜNCELLEME: Giriş ekranı ve ana uygulama arasında geçiş
             if (!isExperienceStarted) {
                 return <WelcomeScreen onStart={handleWelcomeStart} />;
             }
@@ -289,7 +313,6 @@
                             <button onClick={toggleMusic} className="p-2 rounded-full text-gray-300 hover:bg-gray-700 transition-colors" title={isMusicPlaying ? "Müziği Durdur" : "Müziği Başlat"}>
                                 {isMusicPlaying ? <Volume2Icon /> : <VolumeXIcon />}
                             </button>
-                            {/* GÜNCELLEME: Ses ayar çubuğu eklendi */}
                             <input 
                                 type="range" 
                                 min="0" 
@@ -304,7 +327,8 @@
                     </nav>
 
                     <main className="pt-24 pb-8">
-                        <div style={{ display: activeView === "home" ? 'block' : 'none' }}><AnimatedSection><GalleryView setNotification={setNotification} /></AnimatedSection></div>
+                        {/* DÜZELTME: Ana Sayfa ve Galeri artık farklı bileşenleri gösteriyor */}
+                        <div style={{ display: activeView === "home" ? 'block' : 'none' }}><AnimatedSection><AnaSayfaView /></AnimatedSection></div>
                         <div style={{ display: activeView === "gallery" ? 'block' : 'none' }}><AnimatedSection><GalleryView setNotification={setNotification} /></AnimatedSection></div>
                         <div style={{ display: activeView === "composer" ? 'block' : 'none' }}><AnimatedSection><ComposerView /></AnimatedSection></div>
                         <div style={{ display: activeView === "sensor" ? 'block' : 'none' }}><AnimatedSection><LiveSensorDemoView /></AnimatedSection></div>
