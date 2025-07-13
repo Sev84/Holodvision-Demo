@@ -105,7 +105,7 @@
         
         const speakText = (text) => {
             return new Promise((resolve, reject) => {
-                window.speechSynthesis.cancel(); // Önceki konuşmayı iptal et
+                window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'tr-TR';
                 utterance.rate = 0.9;
@@ -332,7 +332,8 @@
                 const newColor = { ...colorInfo, code: colorCode };
                 setDetectedColor(newColor);
                 playColorSound(newColor);
-                setColorHistory(prevHistory => [...prevHistory, newColor].slice(-50)); // Geçmişi 50 ile sınırla
+                // GÜNCELLEME: Renk geçmişi 100 ile sınırlandı.
+                setColorHistory(prevHistory => [...prevHistory, newColor].slice(-100));
             };
 
             const handleManualSubmit = (e) => { 
@@ -395,7 +396,8 @@
                 } 
             }, [detectedColor]);
 
-            const pixelGrid = Array.from({ length: 50 }, (_, i) => colorHistory[i] || null);
+            // GÜNCELLEME: Piksel ızgarası 100 kareye çıkarıldı.
+            const pixelGrid = Array.from({ length: 100 }, (_, i) => colorHistory[i] || null);
 
             return ( 
                 <div className="w-full max-w-4xl mx-auto text-center flex flex-col">
@@ -421,8 +423,9 @@
                     
                     <div className="mt-8 w-full">
                         <h3 className="text-2xl font-bold text-white mb-4">Piksel Defteri</h3>
-                        <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 aspect-[10/5] w-full max-w-lg mx-auto">
-                            <div className="grid grid-cols-10 grid-rows-5 h-full gap-1">
+                        {/* GÜNCELLEME: Izgara 10x10 olarak güncellendi. */}
+                        <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 aspect-square w-full max-w-md mx-auto">
+                            <div className="grid grid-cols-10 grid-rows-10 h-full gap-1">
                                 {pixelGrid.map((color, index) => (
                                     <div 
                                         key={index}
@@ -437,10 +440,10 @@
 
                     <div className="mt-8 w-full">
                         <h3 className="text-2xl font-bold text-white mb-4">Nota Terminali</h3>
-                        <div className="bg-black font-mono text-left p-4 rounded-xl w-full max-w-lg mx-auto border border-gray-700">
+                        {/* GÜNCELLEME: Terminal çıktısı zenginleştirildi. */}
+                        <div className="bg-black font-mono text-left p-4 rounded-xl w-full max-w-md mx-auto border border-gray-700 h-48 overflow-y-auto">
                             <p className="text-green-400 break-words">
-                                <span className="text-gray-500">$ </span>
-                                {colorHistory.map(c => c.sound).join(' ')}
+                                {colorHistory.map(c => `${c.name}(${c.sound}) ♪ `).join('')}
                                 <span className="blinking-cursor">█</span>
                             </p>
                         </div>
