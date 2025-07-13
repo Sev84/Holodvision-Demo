@@ -448,7 +448,6 @@
                 setAnalysisResult("");
                 setGeneratedImage("");
 
-                // API Anahtarı varsa, yapay zeka ile yorumla ve görsel üret
                 if (apiKey) {
                     const colorSequence = colorHistory.map(c => c.name).join(', ');
                     const noteSequence = colorHistory.map(c => c.sound).join(' ');
@@ -470,7 +469,7 @@
                         if (textResult.candidates && textResult.candidates[0]?.content?.parts?.[0]?.text) {
                             analysisText = textResult.candidates[0].content.parts[0].text;
                         } else if (textResult.error) {
-                            throw new Error(textResult.error.message);
+                            throw new Error(`Metin Analizi Hatası: ${textResult.error.message}`);
                         }
                         setAnalysisResult(analysisText);
                         speakText(analysisText);
@@ -490,7 +489,8 @@
                             const imageUrl = `data:image/png;base64,${imageResult.predictions[0].bytesBase64Encoded}`;
                             setGeneratedImage(imageUrl);
                         } else if (imageResult.error) {
-                            throw new Error(imageResult.error.message);
+                            console.error("Görsel Üretme Hatası:", imageResult.error.message);
+                            setNotification("Metin yorumlandı ancak görsel üretilemedi. API anahtarınızın faturalandırma durumuyla ilgili olabilir.");
                         }
 
                     } catch (error) {
@@ -500,7 +500,6 @@
                         setIsLoadingAnalysis(false);
                     }
                 } else {
-                    // API Anahtarı yoksa, hazır metinlerden birini kullan
                     const randomIndex = Math.floor(Math.random() * fallbackAnalyses.length);
                     const fallbackText = fallbackAnalyses[randomIndex];
                     setAnalysisResult(fallbackText);
@@ -619,12 +618,6 @@
                             {isLoadingAnalysis ? "Yorumlanıyor..." : "Kompozisyonu Yorumla"}
                         </button>
                     </div>
-
-                    {isLoadingAnalysis && (
-                        <div className="mt-4 w-full max-w-md mx-auto text-center">
-                            <p>Yapay zeka kompozisyonunuzu yorumluyor ve görselleştiriyor...</p>
-                        </div>
-                    )}
                     
                     {generatedImage && (
                          <div className="mt-8 w-full max-w-md mx-auto">
