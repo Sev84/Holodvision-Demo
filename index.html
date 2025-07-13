@@ -472,7 +472,7 @@
                             throw new Error(`Metin Analizi Hatası: ${textResult.error.message}`);
                         }
                         setAnalysisResult(analysisText);
-                        speakText(analysisText);
+                        speakText(analysisText, localStorage.getItem("elevenLabsApiKey"));
 
                         const imagePrompt = `Abstract emotional digital art inspired by this feeling: "${analysisText}". The main colors are ${colorSequence}.`;
                         const imagePayload = { instances: [{ prompt: imagePrompt }], parameters: { "sampleCount": 1} };
@@ -503,7 +503,7 @@
                     const randomIndex = Math.floor(Math.random() * fallbackAnalyses.length);
                     const fallbackText = fallbackAnalyses[randomIndex];
                     setAnalysisResult(fallbackText);
-                    speakText(fallbackText);
+                    speakText(fallbackText, localStorage.getItem("elevenLabsApiKey"));
                     setIsLoadingAnalysis(false);
                 }
             };
@@ -650,6 +650,7 @@
             const [bgMusicVolume, setBgMusicVolume] = useState(0.3);
             const [isApiModalOpen, setIsApiModalOpen] = useState(false);
             const bgMusicRef = useRef(null);
+            const introAudioRef = useRef(null);
 
             useEffect(() => {
                 bgMusicRef.current = new Audio("https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/fon%20muzik.mp3");
@@ -664,14 +665,22 @@
 
             const handleWelcomeStart = () => {
                 setIsExperienceStarted(true);
-                const introAudio = new Audio("https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/Tanıtım1.mp3");
-                introAudio.play().catch(e => console.error("Giriş sesi çalma hatası:", e));
+                introAudioRef.current = new Audio("https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/Tanıtım1.mp3");
+                introAudioRef.current.play().catch(e => console.error("Giriş sesi çalma hatası:", e));
                 
                 bgMusicRef.current.play().catch(e => {
                     console.error("Arka plan müziği çalma hatası:", e);
                     setIsMusicPlaying(false);
                 });
                 setIsMusicPlaying(true);
+            };
+
+            const stopAllAudio = () => {
+                window.speechSynthesis.cancel();
+                if (introAudioRef.current && !introAudioRef.current.paused) {
+                    introAudioRef.current.pause();
+                    introAudioRef.current.currentTime = 0;
+                }
             };
 
             const toggleMusic = () => {
@@ -708,15 +717,15 @@
                             <span className="text-xl font-bold text-pink-400 hidden md:block">PİKSENFONİ</span>
                         </div>
                         <div className="flex-grow flex justify-center items-center space-x-1 sm:space-x-2 md:space-x-4">
-                            <button onMouseEnter={() => speakText("Ana Sayfa")} onClick={() => setActiveView("home")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "home" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Ana Sayfa"><HomeIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Ana Sayfa</span></button>
-                            <button onMouseEnter={() => speakText("Galeri")} onClick={() => setActiveView("gallery")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "gallery" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Galeri"><EyeIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Galeri</span></button>
-                            <button onMouseEnter={() => speakText("Besteci")} onClick={() => setActiveView("composer")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "composer" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Besteci"><MusicIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Besteci</span></button>
-                            <button onMouseEnter={() => speakText("Sensör")} onClick={() => setActiveView("sensor")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "sensor" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Sensör"><RssIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Sensör</span></button>
-                            <button onMouseEnter={() => speakText("Proje")} onClick={() => setActiveView("project")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "project" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Proje"><FileTextIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Proje</span></button>
-                            <button onMouseEnter={() => speakText("İletişim")} onClick={() => setActiveView("contact")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "contact" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="İletişim"><MailIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">İletişim</span></button>
+                            <button onMouseEnter={() => speakText("Ana Sayfa", localStorage.getItem("elevenLabsApiKey"))} onClick={() => setActiveView("home")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "home" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Ana Sayfa"><HomeIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Ana Sayfa</span></button>
+                            <button onMouseEnter={() => speakText("Galeri", localStorage.getItem("elevenLabsApiKey"))} onClick={() => setActiveView("gallery")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "gallery" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Galeri"><EyeIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Galeri</span></button>
+                            <button onMouseEnter={() => speakText("Besteci", localStorage.getItem("elevenLabsApiKey"))} onClick={() => setActiveView("composer")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "composer" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Besteci"><MusicIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Besteci</span></button>
+                            <button onMouseEnter={() => speakText("Sensör", localStorage.getItem("elevenLabsApiKey"))} onClick={() => setActiveView("sensor")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "sensor" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Sensör"><RssIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Sensör</span></button>
+                            <button onMouseEnter={() => speakText("Proje", localStorage.getItem("elevenLabsApiKey"))} onClick={() => setActiveView("project")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "project" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="Proje"><FileTextIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">Proje</span></button>
+                            <button onMouseEnter={() => speakText("İletişim", localStorage.getItem("elevenLabsApiKey"))} onClick={() => setActiveView("contact")} className={`px-2 py-2 md:px-3 rounded-lg transition-colors flex items-center text-sm ${activeView === "contact" ? 'bg-red-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`} title="İletişim"><MailIcon className="mr-0 sm:mr-1 h-5 w-5" /> <span className="hidden sm:inline">İletişim</span></button>
                         </div>
                         <div className="flex items-center space-x-3">
-                            <button onClick={() => window.speechSynthesis.cancel()} className="p-2 rounded-full text-gray-300 hover:bg-gray-700 transition-colors" title="Seslendirmeyi Durdur">
+                            <button onClick={stopAllAudio} className="p-2 rounded-full text-gray-300 hover:bg-gray-700 transition-colors" title="Seslendirmeyi Durdur">
                                 <MicOffIcon />
                             </button>
                             <button onClick={() => setIsApiModalOpen(true)} className="p-2 rounded-full text-gray-300 hover:bg-gray-700 transition-colors" title="Ayarlar">
