@@ -71,13 +71,12 @@
         input[type=range]::-moz-range-track { background: #4a5568; height: 4px; border-radius: 2px; }
         input[type=range]::-moz-range-thumb { border: none; border-radius: 50%; background-color: #e94560; height: 16px; width: 16px; }
         
-        /* Terminal imleci için animasyon */
         .blinking-cursor {
             animation: blink 1s step-end infinite;
         }
         @keyframes blink {
             from, to { color: transparent; }
-            50% { color: #34d399; } /* İmleç rengi */
+            50% { color: #34d399; }
         }
     </style>
 </head>
@@ -303,6 +302,9 @@
             const [isConnected, setIsConnected] = useState(false);
             const [isManualMode, setIsManualMode] = useState(false);
             const [colorHistory, setColorHistory] = useState([]);
+            const [analysisResult, setAnalysisResult] = useState("");
+            const [generatedImage, setGeneratedImage] = useState("");
+            const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
             const audioRef = useRef(new Audio());
             const connectionTimeoutRef = useRef(null);
             const colorData = { krmz: { name: 'Kırmızı', hex: '#ef4444', sound: 'krmz' }, ysl: { name: 'Yeşil', hex: '#22c55e', sound: 'ysl' }, mavi: { name: 'Mavi', hex: '#3b82f6', sound: 'mavi' }, sari: { name: 'Sarı', hex: '#eab308', sound: 'sari' }, trnc: { name: 'Turuncu', hex: '#f97316', sound: 'trnc' }, mor: { name: 'Mor', hex: '#8b5cf6', sound: 'mor' }, pembe: { name: 'Pembe', hex: '#ec4899', sound: 'pmb' }, };
@@ -332,7 +334,6 @@
                 const newColor = { ...colorInfo, code: colorCode };
                 setDetectedColor(newColor);
                 playColorSound(newColor);
-                // GÜNCELLEME: Renk geçmişi 100 ile sınırlandı.
                 setColorHistory(prevHistory => [...prevHistory, newColor].slice(-100));
             };
 
@@ -340,6 +341,65 @@
                 e.preventDefault(); 
                 handleColorChange(e.target.manualInput.value); 
                 e.target.manualInput.value = '';
+            };
+
+            const handleAnalysis = async () => {
+                if (colorHistory.length === 0) {
+                    alert("Yorum yapmak için önce renk verisi algılanmalıdır.");
+                    return;
+                }
+                setIsLoadingAnalysis(true);
+                setAnalysisResult("");
+                setGeneratedImage("");
+                
+                const colorSequence = colorHistory.map(c => c.name).join(', ');
+                const noteSequence = colorHistory.map(c => c.sound).join(' ');
+                
+                const textPrompt = `Bir sanat ve müzik eleştirmeni olarak, aşağıdaki renk dizisi ve nota diziliminden oluşan soyut kompozisyonun duygusal tonunu yorumla. Renklerin yarattığı atmosferi, notaların çağrıştırdığı hisleri ve bu ikisinin birleşiminden doğan genel ruh halini şiirsel bir dille anlat. Yorumun kısa ve etkileyici olsun. Renkler: ${colorSequence}. Notalar: ${noteSequence}.`;
+                
+                try {
+                    // Adım 1: Metin analizi al
+                    let chatHistory = [{ role: "user", parts: [{ text: textPrompt }] }];
+                    const textPayload = { contents: chatHistory };
+                    const textApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=`;
+                    
+                    const textResponse = await fetch(textApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(textPayload)
+                    });
+                    const textResult = await textResponse.json();
+                    
+                    let analysisText = "Yorum alınamadı.";
+                    if (textResult.candidates && textResult.candidates[0]?.content?.parts?.[0]?.text) {
+                        analysisText = textResult.candidates[0].content.parts[0].text;
+                    }
+                    setAnalysisResult(analysisText);
+                    speakText(analysisText);
+
+                    // Adım 2: Görsel üret
+                    const imagePrompt = `Abstract emotional digital art inspired by this feeling: "${analysisText}". The main colors are ${colorSequence}.`;
+                    const imagePayload = { instances: [{ prompt: imagePrompt }], parameters: { "sampleCount": 1} };
+                    const imageApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=`;
+
+                    const imageResponse = await fetch(imageApiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(imagePayload)
+                    });
+                    const imageResult = await imageResponse.json();
+
+                    if (imageResult.predictions && imageResult.predictions[0]?.bytesBase64Encoded) {
+                        const imageUrl = `data:image/png;base64,${imageResult.predictions[0].bytesBase64Encoded}`;
+                        setGeneratedImage(imageUrl);
+                    }
+
+                } catch (error) {
+                    console.error("Yapay zeka analizi veya görsel üretimi sırasında hata:", error);
+                    setAnalysisResult("Yorumlama sırasında bir hata oluştu. Lütfen tekrar deneyin.");
+                } finally {
+                    setIsLoadingAnalysis(false);
+                }
             };
             
             useEffect(() => { 
@@ -396,7 +456,6 @@
                 } 
             }, [detectedColor]);
 
-            // GÜNCELLEME: Piksel ızgarası 100 kareye çıkarıldı.
             const pixelGrid = Array.from({ length: 100 }, (_, i) => colorHistory[i] || null);
 
             return ( 
@@ -423,7 +482,6 @@
                     
                     <div className="mt-8 w-full">
                         <h3 className="text-2xl font-bold text-white mb-4">Piksel Defteri</h3>
-                        {/* GÜNCELLEME: Izgara 10x10 olarak güncellendi. */}
                         <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 aspect-square w-full max-w-md mx-auto">
                             <div className="grid grid-cols-10 grid-rows-10 h-full gap-1">
                                 {pixelGrid.map((color, index) => (
@@ -440,7 +498,6 @@
 
                     <div className="mt-8 w-full">
                         <h3 className="text-2xl font-bold text-white mb-4">Nota Terminali</h3>
-                        {/* GÜNCELLEME: Terminal çıktısı zenginleştirildi. */}
                         <div className="bg-black font-mono text-left p-4 rounded-xl w-full max-w-md mx-auto border border-gray-700 h-48 overflow-y-auto">
                             <p className="text-green-400 break-words">
                                 {colorHistory.map(c => `${c.name}(${c.sound}) ♪ `).join('')}
@@ -448,6 +505,38 @@
                             </p>
                         </div>
                     </div>
+
+                    <div className="mt-8 w-full max-w-md mx-auto">
+                        <button onClick={handleAnalysis} disabled={isLoadingAnalysis} className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            {isLoadingAnalysis ? <LoaderIcon /> : <SparklesIcon className="mr-2" />}
+                            {isLoadingAnalysis ? "Yorumlanıyor..." : "Kompozisyonu Yorumla"}
+                        </button>
+                    </div>
+
+                    {isLoadingAnalysis && (
+                        <div className="mt-4 w-full max-w-md mx-auto text-center">
+                            <p>Yapay zeka kompozisyonunuzu yorumluyor ve görselleştiriyor...</p>
+                        </div>
+                    )}
+                    
+                    {generatedImage && (
+                         <div className="mt-8 w-full max-w-md mx-auto">
+                             <h3 className="text-2xl font-bold text-white mb-4">Yapay Zeka Görseli</h3>
+                             <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                                 <img src={generatedImage} alt="Yapay zeka tarafından üretilen görsel" className="w-full h-auto rounded-lg"/>
+                             </div>
+                         </div>
+                    )}
+
+                    {analysisResult && !isLoadingAnalysis && (
+                        <div className="mt-4 w-full max-w-md mx-auto">
+                             <h3 className="text-2xl font-bold text-white mb-4">Yapay Zeka Yorumu</h3>
+                            <div className="bg-gray-900/70 p-4 rounded-xl text-left">
+                                <p className="text-gray-300 whitespace-pre-wrap">{analysisResult}</p>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             ); 
         };
