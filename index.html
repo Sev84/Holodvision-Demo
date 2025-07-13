@@ -9,7 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <!-- Babel for JSX -->
@@ -36,7 +35,7 @@
         window.firebaseOnValue = onValue;
     </script>
 
-    <!-- Temel stiller ve ses ayar çubuğu için özel stiller -->
+    <!-- Temel stiller -->
     <style>
         body {
             margin: 0;
@@ -45,9 +44,12 @@
                 sans-serif;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
-            background-color: #0c0a18; /* Varsayılan arka plan rengi */
+            background-color: #0c0a18;
             color: #fff;
             overflow-x: hidden;
+        }
+        #root {
+            transition: background-color 0.5s ease;
         }
         #qr-reader video { border-style: none !important; }
         ::-webkit-scrollbar { width: 8px; }
@@ -73,10 +75,6 @@
 <body>
     <div id="root"></div>
     
-    <!-- Ses dosyaları için güncellenmiş URL'ler -->
-    <audio id="bg-music-player" src="https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/fon%20muzik.mp3" loop></audio>
-    <audio id="intro-audio-player" src="https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/Tanıtım.mp3"></audio>
-
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
@@ -86,6 +84,7 @@
         const RssIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>);
         const XCircleIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>);
         const LoaderIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>);
+        const SparklesIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m12 3-1.9 5.8-5.8 1.9 5.8 1.9L12 18l1.9-5.8 5.8-1.9-5.8-1.9L12 3z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>);
         const CameraIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>);
         const Volume2Icon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>);
         const VolumeXIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>);
@@ -93,7 +92,23 @@
         const FileTextIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>);
         const MailIcon = (props) => (<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>);
 
-        // --- YARDIMCI BİLEŞENLER ---
+        // --- YARDIMCI BİLEŞENLER ve FONKSİYONLAR ---
+        
+        const speakText = (text) => {
+            return new Promise((resolve, reject) => {
+                window.speechSynthesis.cancel(); // Önceki konuşmayı iptal et
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'tr-TR';
+                utterance.rate = 0.9;
+                utterance.onend = resolve;
+                utterance.onerror = (e) => {
+                    console.error("SpeechSynthesis Hatası:", e);
+                    reject(e);
+                };
+                window.speechSynthesis.speak(utterance);
+            });
+        };
+
         const useOnScreen = (options) => { const ref = useRef(null); const [isVisible, setIsVisible] = useState(false); useEffect(() => { const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); } }, options); const currentRef = ref.current; if (currentRef) observer.observe(currentRef); return () => { if (currentRef) observer.unobserve(currentRef); }; }, [ref, options]); return [ref, isVisible]; };
         const AnimatedSection = ({ children, ...props }) => { const [ref, isVisible] = useOnScreen({ threshold: 0.1 }); return ( <div ref={ref} className={`fade-in-section ${isVisible ? 'is-visible' : ''} py-16 px-4 sm:px-6 lg:px-8 min-h-screen flex items-center justify-center`} {...props}> {children} </div> ); };
         const Notification = ({ message, onClear }) => { if (!message) return null; useEffect(() => { const timer = setTimeout(() => { onClear(); }, 4000); return () => clearTimeout(timer); }, [message, onClear]); return ( <div className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-red-600 text-white py-3 px-6 rounded-lg shadow-lg z-[100] transition-transform animate-bounce"> {message} </div> ); };
@@ -101,14 +116,6 @@
         
         // --- BAŞLANGIÇ EKRANI ---
         const WelcomeScreen = ({ onStart }) => {
-            const handleStartClick = () => {
-                const introAudio = document.getElementById('intro-audio-player');
-                if (introAudio) {
-                    introAudio.play().catch(e => console.error("Tanıtım sesi çalma hatası:", e));
-                }
-                onStart();
-            };
-
             return (
                 <div className="min-h-screen w-full flex flex-col items-center justify-center text-center p-4 bg-gradient-to-b from-[#0c0a18] to-[#1a1a2e]">
                     <img src="https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/logo1111111.png" alt="PİKSENFONİ Logosu" className="mx-auto mb-8 h-40 animate-pulse"/>
@@ -118,7 +125,7 @@
                             Renklerle seslerin buluştuğu bu sınırsız dünyada, sanatı herkes için erişilebilir kılıyoruz. Deneyime başlamak için lütfen aşağıdaki düğmeye tıklayın.
                         </p>
                         <button 
-                            onClick={handleStartClick}
+                            onClick={onStart}
                             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-10 rounded-full shadow-lg transition-all transform hover:scale-105 flex items-center justify-center mx-auto text-xl"
                         >
                             <Volume2Icon className="mr-3" size={28} /> Deneyime Başla
@@ -155,7 +162,21 @@
         );
         
         const ArtworkDetailModal = ({ artwork, onClose }) => { 
+            const [analysisText, setAnalysisText] = useState("");
+
+            const getArtAnalysis = () => {
+                const text = artwork.fallbackAnalysis;
+                setAnalysisText(text);
+                speakText(text).catch(err => console.error("Analiz seslendirme hatası:", err));
+            };
+
+            const handleClose = () => {
+                window.speechSynthesis.cancel();
+                onClose();
+            };
+
             if (!artwork) return null; 
+
             return ( 
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-40 p-4"> 
                     <div className="bg-gradient-to-br from-gray-900 to-[#1a1a2e] p-6 rounded-2xl shadow-2xl border border-red-500/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto"> 
@@ -164,11 +185,23 @@
                                 <h2 className="text-3xl font-bold text-red-400">{artwork.artwork}</h2> 
                                 <p className="text-gray-300 text-lg">{artwork.artist}</p> 
                             </div> 
-                            <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors"><XCircleIcon size={28} /></button> 
+                            <button onClick={handleClose} className="text-gray-400 hover:text-white transition-colors"><XCircleIcon size={28} /></button> 
                         </div> 
                         <img src={artwork.imageUrl} alt={artwork.artwork} className="w-full h-72 object-cover rounded-lg mb-4" onError={(e) => { e.target.src=`https://placehold.co/600x400/1f2937/ffffff?text=Resim+Yüklenemedi`; }}/> 
                         <audio controls autoPlay className="w-full mb-4" src={artwork.musicUrl}>Tarayıcınız ses çalmayı desteklemiyor.</audio> 
                         <p className="text-gray-300 mb-6 text-base">{artwork.description}</p> 
+                        <div className="pt-6 border-t border-gray-700">
+                            <button onClick={getArtAnalysis} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center transition-all">
+                                <SparklesIcon className="mr-2" />
+                                ✨ Sanatsal Analiz Al
+                            </button>
+                            {analysisText && (
+                                <div className="mt-4 p-4 bg-gray-900/70 rounded-lg">
+                                    <h4 className="font-bold text-lg text-red-300 mb-2">Sanatsal Analiz</h4>
+                                    <p className="text-gray-300 whitespace-pre-wrap">{analysisText}</p>
+                                </div>
+                            )}
+                        </div>
                     </div> 
                 </div> 
             ); 
@@ -185,12 +218,36 @@
             useEffect(() => {
                 const repoBaseUrl = "https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/";
                 const artworksData = [
-                    { "id": 1, "artwork": "Mona Lisa", "qr": "MONA_ORJ", "musicUrl": `${repoBaseUrl}Monalisa%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Monalisa.jpeg`, "artist": "Leonardo da Vinci", "description": "Rönesans'ın simgesi haline gelmiş, gizemli gülümsemesiyle milyonları büyüleyen bu portre, sfumato tekniğinin en bilinen örneğidir.", "category": "Klasik" },
-                    { "id": 2, "artwork": "İnci Küpeli Kız", "qr": "INCI_ORJ", "musicUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız.jpeg`, "artist": "Johannes Vermeer", "description": "Hollanda'nın Mona Lisa'sı olarak bilinen bu eser, anlık bir bakışın ve ışığın ustaca kullanımının yarattığı duygu yoğunluğuyla tanınır.", "category": "Klasik" },
-                    { "id": 5, "artwork": "İnci Küpeli Kız (Kübist)", "qr": "INCI_KUP", "musicUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız1.jpg`, "artist": "Johannes Vermeer (Yorum)", "description": "Vermeer'in başyapıtının, geometrik formlar ve parçalanmış perspektiflerle modern bir sanat akımı olan Kübizm ile yeniden yorumlanması.", "category": "Kübist" },
-                    { "id": 6, "artwork": "Olga (Kübist)", "qr": "PICA_KUP", "musicUrl": `${repoBaseUrl}Picasso%20Olga%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Picasso%20Olga1.jpg`, "artist": "Pablo Picasso", "description": "Picasso'nun eşi Olga'yı resmettiği bu eser, Kübizm'in keskin hatlarını ve çoklu bakış açısını bir portrede birleştiriyor.", "category": "Kübist" },
-                    { "id": 8, "artwork": "Mona Lisa (Kübist)", "qr": "MONA_KUP", "musicUrl": `${repoBaseUrl}Monalisa%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Monalisa1.jpg`, "artist": "Leonardo da Vinci (Yorum)", "description": "Klasik bir başyapıtın, 20. yüzyılın devrimci sanat akımı Kübizm ile nasıl bir araya gelebileceğini gösteren cesur bir deneme.", "category": "Kübist" },
-                    { "id": 9, "artwork": "Olga (Klasik)", "qr": "PICA_KLASIK", "musicUrl": `${repoBaseUrl}Picasso%20Olga%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Picasso%20Olga.jpg`, "artist": "Pablo Picasso", "description": "Kübist eserleriyle tanınan Picasso'nun, neoklasik döneminde yarattığı, sakin ve heykelsi bir duruşa sahip etkileyici portresi.", "category": "Klasik" }
+                    { 
+                        "id": 1, "artwork": "Mona Lisa", "qr": "MONA_ORJ", "musicUrl": `${repoBaseUrl}Monalisa%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Monalisa.jpeg`, "artist": "Leonardo da Vinci", 
+                        "description": "Rönesans'ın simgesi haline gelmiş, gizemli gülümsemesiyle milyonları büyüleyen bu portre, sfumato tekniğinin en bilinen örneğidir.", "category": "Klasik",
+                        "fallbackAnalysis": "Ben, Leonardo da Vinci'nin fırçasından çıkmış en gizemli gülümsemeyim. Ustam, 'sfumato' adını verdiği bir teknikle, çizgileri ve sınırları bir sis perdesinin ardında eriterek bana bu yumuşak ve canlı ifadeyi verdi. Arka plandaki hayali manzara, benim zamansız ve mekansız duruşumu güçlendirir."
+                    },
+                    { 
+                        "id": 2, "artwork": "İnci Küpeli Kız", "qr": "INCI_ORJ", "musicUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız.jpeg`, "artist": "Johannes Vermeer", 
+                        "description": "Hollanda'nın Mona Lisa'sı olarak bilinen bu eser, anlık bir bakışın ve ışığın ustaca kullanımının yarattığı duygu yoğunluğuyla tanınır.", "category": "Klasik",
+                        "fallbackAnalysis": "Ustam Vermeer, bir anın büyüsünü yakalamakta ustaydı. Omzumun üzerinden sana dönerkenki o anlık bakışım, karanlık bir arka plandan fırlayan ışıkla aydınlanır. Gözlerimdeki merak ve dudağımdaki hafif aralık, sana söylenmemiş bir sırrı fısıldar. İnci küpem ise, tüm bu sadeliğin ortasında parlayan bir umut gibidir."
+                    },
+                    { 
+                        "id": 5, "artwork": "İnci Küpeli Kız (Kübist)", "qr": "INCI_KUP", "musicUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Inci%20Kupeli%20Kız1.jpg`, "artist": "Johannes Vermeer (Yorum)", 
+                        "description": "Vermeer'in başyapıtının, geometrik formlar ve parçalanmış perspektiflerle modern bir sanat akımı olan Kübizm ile yeniden yorumlanması.", "category": "Kübist",
+                        "fallbackAnalysis": "Ben, tanıdığınız o masum kızın, 20. yüzyılın gözünden görülen haliyim. Formlarım parçalandı, yüzüm farklı açılardan aynı anda size bakıyor. Bu, modern dünyanın karmaşasını ve bir nesneye tek bir noktadan bakılamayacağı fikrini temsil eder. Duygularım artık geometrik şekillerin içinde gizli."
+                    },
+                    { 
+                        "id": 6, "artwork": "Olga (Kübist)", "qr": "PICA_KUP", "musicUrl": `${repoBaseUrl}Picasso%20Olga%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Picasso%20Olga1.jpg`, "artist": "Pablo Picasso", 
+                        "description": "Picasso'nun eşi Olga'yı resmettiği bu eser, Kübizm'in keskin hatlarını ve çoklu bakış açısını bir portrede birleştiriyor.", "category": "Kübist",
+                        "fallbackAnalysis": "Ben, Picasso'nun aşkının ve fırtınalı ruhunun bir tuval üzerindeki yansımasıyım. Ustam, beni aynı anda hem profilden hem de cepheden çizerek, bir insanın birden çok yüzü olabileceğini gösterdi. Bu keskin çizgiler ve koyu renkler, ilişkimizin tutkusunu ve karmaşıklığını anlatır."
+                    },
+                    { 
+                        "id": 8, "artwork": "Mona Lisa (Kübist)", "qr": "MONA_KUP", "musicUrl": `${repoBaseUrl}Monalisa%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Monalisa1.jpg`, "artist": "Leonardo da Vinci (Yorum)", 
+                        "description": "Klasik bir başyapıtın, 20. yüzyılın devrimci sanat akımı Kübizm ile nasıl bir araya gelebileceğini gösteren cesur bir deneme.", "category": "Kübist",
+                        "fallbackAnalysis": "Yüzyıllardır süren o sakin gülümsemem, kübizmin keskin ve geometrik diliyle yeniden yorumlandı. Artık sırrım, yumuşak hatlarda değil, her bir köşede, her bir planda saklı. Ben, bir Rönesans ikonunun modern bir zihin tarafından nasıl yeniden inşa edilebileceğinin bir kanıtıyım."
+                    },
+                    { 
+                        "id": 9, "artwork": "Olga (Klasik)", "qr": "PICA_KLASIK", "musicUrl": `${repoBaseUrl}Picasso%20Olga%20Son%20Hali.mp3`, "imageUrl": `${repoBaseUrl}Picasso%20Olga.jpg`, "artist": "Pablo Picasso", 
+                        "description": "Kübist eserleriyle tanınan Picasso'nun, neoklasik döneminde yarattığı, sakin ve heykelsi bir duruşa sahip etkileyici portresi.", "category": "Klasik",
+                        "fallbackAnalysis": "Picasso'nun fırçasından çıkan bir başka Olga'yım ben. Ama bu kez kübizmin parçalanmışlığında değil, antik heykellerin dinginliğinde ve anıtsallığında var oluyorum. Ustamın, modernizmin ortasında klasik güzelliğe duyduğu özlemin bir ifadesiyim."
+                    }
                 ];
                 setAllArtworks(artworksData);
                 setFilteredArtworks(artworksData);
@@ -231,35 +288,150 @@
         const ProjeView = () => ( <div className="w-full max-w-5xl mx-auto"> <h2 className="text-4xl font-bold text-center mb-12">Proje Hakkında</h2> <div className="grid md:grid-cols-3 gap-8 mb-16 text-center"> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Amacımız</h3> <p className="text-gray-400">Görme engelli bireylerin sanata erişimini artırmak ve sanat eserlerini çoklu duyusal yollarla, özgürce deneyimlemelerini sağlamak.</p> </div> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Teknolojimiz</h3> <p className="text-gray-400">RGB renk sensörlü akıllı eldiven, renkleri notalara ve titreşimlere dönüştürür. QR kod tabanlı web uygulamamız ise eserlere özel müziklere anında erişim sunar.</p> </div> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Hedef Kitlemiz</h3> <p className="text-gray-400">Görme engelli bireyler, özel eğitim kurumları, müzeler, sanat galerileri ve sanata erişilebilir bir pencereden bakmak isteyen herkes.</p> </div> </div> <div className="text-center bg-gray-800/50 p-8 rounded-xl"> <h3 className="text-3xl font-bold mb-4">Renk ve Ses Eldiveni</h3> <p className="text-gray-400 max-w-2xl mx-auto mb-6">Eldiveni kullanarak tablolardaki renklere dokunun ve notaları duyun. Sanatla aranızdaki engelleri kaldırın.</p> <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"> ⚡ Firebase Bağlantısı Kuruldu </button> <p className="text-sm text-gray-500 mt-3">Canlı sensör verisi için "Sensör" bölümünü ziyaret edin.</p> </div> </div> );
         const IletisimView = ({ setNotification }) => { const [formData, setFormData] = useState({ name: '', email: '', message: '' }); const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); }; const handleSubmit = (e) => { e.preventDefault(); console.log("İletişim Formu Gönderildi:", formData); setNotification("Mesajınız başarıyla gönderildi! Teşekkür ederiz."); setFormData({ name: '', email: '', message: '' }); }; return ( <div className="w-full max-w-2xl mx-auto text-center"> <h2 className="text-4xl font-bold mb-4">İletişim</h2> <p className="text-gray-400 mb-8">Sorularınız, geri bildirimleriniz veya işbirliği teklifleriniz için bizimle iletişime geçin.</p> <form onSubmit={handleSubmit} className="bg-gray-800/50 p-8 rounded-xl shadow-lg border border-gray-700"> <div className="mb-6 text-left"> <label htmlFor="name" className="block text-gray-300 text-sm font-bold mb-2">Adınız:</label> <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500" placeholder="Adınız Soyadınız" required /> </div> <div className="mb-6 text-left"> <label htmlFor="email" className="block text-gray-300 text-sm font-bold mb-2">E-posta Adresiniz:</label> <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500" placeholder="ornek@email.com" required /> </div> <div className="mb-8 text-left"> <label htmlFor="message" className="block text-gray-300 text-sm font-bold mb-2">Mesajınız:</label> <textarea id="message" name="message" value={formData.message} onChange={handleChange} rows="5" className="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 text-white leading-tight focus:outline-none focus:shadow-outline bg-gray-900 placeholder-gray-500 resize-y" placeholder="Mesajınızı buraya yazın..." required ></textarea> </div> <div className="flex items-center justify-center"> <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:shadow-outline flex items-center justify-center"> <MailIcon className="mr-2" /> Mesaj Gönder </button> </div> </form> </div> ); };
         
+        // YENİ: LiveSensorDemoView, renk geçmişi özelliği ile güncellendi.
         const LiveSensorDemoView = () => {
             const [detectedColor, setDetectedColor] = useState({ name: 'Bekleniyor...', code: 'default' });
             const [isConnected, setIsConnected] = useState(false);
             const [isManualMode, setIsManualMode] = useState(false);
+            const [colorHistory, setColorHistory] = useState([]); // Renk geçmişi için state
             const audioRef = useRef(new Audio());
             const connectionTimeoutRef = useRef(null);
             const colorData = { krmz: { name: 'Kırmızı', hex: '#ef4444', sound: 'krmz' }, ysl: { name: 'Yeşil', hex: '#22c55e', sound: 'ysl' }, mavi: { name: 'Mavi', hex: '#3b82f6', sound: 'mavi' }, sari: { name: 'Sarı', hex: '#eab308', sound: 'sari' }, trnc: { name: 'Turuncu', hex: '#f97316', sound: 'trnc' }, mor: { name: 'Mor', hex: '#8b5cf6', sound: 'mor' }, pembe: { name: 'Pembe', hex: '#ec4899', sound: 'pmb' }, };
-            const soundBaseUrl = "https://sev84.github.io/Holodvision-Demo/";
-            const playColorSound = (colorInfo) => { if (!colorInfo || !colorInfo.sound) return; const audio = audioRef.current; audio.src = `${soundBaseUrl}${colorInfo.sound}.wav`; audio.play().catch(error => console.error("Ses çalma hatası:", error, audio.src)); };
-            const handleColorChange = (colorCode) => { const colorInfo = colorData[colorCode.toLowerCase().trim()]; if (!colorInfo) { setDetectedColor({ name: 'Bilinmeyen Renk', code: 'default' }); return; }; setDetectedColor({ name: colorInfo.name, code: colorCode }); playColorSound(colorInfo); };
-            const handleManualSubmit = (e) => { e.preventDefault(); handleColorChange(e.target.manualInput.value); };
-            useEffect(() => { connectionTimeoutRef.current = setTimeout(() => { if (!isConnected) { setIsManualMode(true); } }, 5000); if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) { const colorRef = window.firebaseRef(window.firebaseDb, '/sensorData/color'); const unsubscribe = window.firebaseOnValue(colorRef, (snapshot) => { if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); connectionTimeoutRef.current = null; } setIsManualMode(false); const colorCode = snapshot.val(); if (colorCode) { const colorInfo = colorData[colorCode.toLowerCase().trim()]; if (colorInfo) { setDetectedColor({ name: colorInfo.name, code: colorCode }); playColorSound(colorInfo); setIsConnected(true); } else { setDetectedColor({ name: 'Bilinmeyen Renk', code: 'default' }); setIsConnected(true); } } else { setDetectedColor({ name: 'Bekleniyor...', code: 'default' }); setIsConnected(false); } }, (error) => { console.error("Firebase'den veri okuma hatası:", error); setDetectedColor({ name: 'Hata!', code: 'default' }); setIsConnected(false); setIsManualMode(true); }); return () => { unsubscribe(); if (connectionTimeoutRef.current) { clearTimeout(connectionTimeoutRef.current); } }; } else { setIsConnected(false); setIsManualMode(true); } }, [isConnected]);
+            const soundBaseUrl = "https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/";
             
-            // Arka plan rengini değiştiren useEffect
+            const playColorSound = (colorInfo) => {
+                if (!colorInfo || !colorInfo.sound) return;
+                const audio = audioRef.current;
+                if (!audio.paused) {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }
+                audio.src = `${soundBaseUrl}${colorInfo.sound}.wav`;
+                audio.play().catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.error("Renk sesi çalma hatası:", error);
+                    }
+                });
+            };
+
+            const handleColorChange = (colorCode) => {
+                const colorInfo = colorData[colorCode.toLowerCase().trim()];
+                if (!colorInfo) { 
+                    setDetectedColor({ name: 'Bilinmeyen Renk', code: 'default' });
+                    return; 
+                }
+                setDetectedColor({ name: colorInfo.name, code: colorCode });
+                playColorSound(colorInfo);
+                // Renk geçmişini güncelle (son 10 rengi tut)
+                setColorHistory(prevHistory => [...prevHistory, colorInfo].slice(-10));
+            };
+
+            const handleManualSubmit = (e) => { 
+                e.preventDefault(); 
+                handleColorChange(e.target.manualInput.value); 
+                e.target.manualInput.value = '';
+            };
+            
             useEffect(() => { 
-                const bodyElement = document.body; 
-                if (bodyElement) { 
-                    bodyElement.style.transition = 'background-color 0.5s ease'; 
-                    bodyElement.style.backgroundColor = colorData[detectedColor.code]?.hex || '#0c0a18'; 
+                connectionTimeoutRef.current = setTimeout(() => { 
+                    if (!isConnected) {
+                        setIsManualMode(true); 
+                    }
+                }, 5000); 
+                
+                if (window.firebaseDb && window.firebaseRef && window.firebaseOnValue) { 
+                    const colorRef = window.firebaseRef(window.firebaseDb, '/sensorData/color'); 
+                    const unsubscribe = window.firebaseOnValue(colorRef, (snapshot) => { 
+                        if (connectionTimeoutRef.current) { 
+                            clearTimeout(connectionTimeoutRef.current); 
+                            connectionTimeoutRef.current = null; 
+                        } 
+                        setIsManualMode(false); 
+                        const colorCode = snapshot.val(); 
+                        if (colorCode) {
+                            handleColorChange(colorCode);
+                            setIsConnected(true);
+                        } else { 
+                            setDetectedColor({ name: 'Bekleniyor...', code: 'default' }); 
+                            setIsConnected(false); 
+                        } 
+                    }, (error) => { 
+                        console.error("Firebase'den veri okuma hatası:", error); 
+                        setDetectedColor({ name: 'Hata!', code: 'default' }); 
+                        setIsConnected(false); 
+                        setIsManualMode(true); 
+                    }); 
+                    return () => { 
+                        unsubscribe(); 
+                        if (connectionTimeoutRef.current) { 
+                            clearTimeout(connectionTimeoutRef.current); 
+                        } 
+                    }; 
+                } else { 
+                    setIsConnected(false); 
+                    setIsManualMode(true); 
+                } 
+            }, [isConnected]);
+            
+            useEffect(() => { 
+                const rootElement = document.getElementById('root'); 
+                if (rootElement) { 
+                    rootElement.style.backgroundColor = colorData[detectedColor.code]?.hex || ''; 
                 } 
                 return () => { 
-                    const bodyElement = document.body; 
-                    if (bodyElement) { 
-                        bodyElement.style.backgroundColor = '#0c0a18'; 
+                    const rootElement = document.getElementById('root'); 
+                    if (rootElement) { 
+                        rootElement.style.backgroundColor = ''; 
                     } 
                 } 
             }, [detectedColor]);
 
-            return ( <div className="w-full max-w-2xl mx-auto text-center"> <h1 className="text-4xl font-bold text-white mb-2">Canlı Sensör Verisi</h1> <p className="text-gray-400 mb-6">Deneyap Kart'tan gelen canlı renk verisi burada gösterilir.</p> {isManualMode ? ( <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-red-500"> <p className="text-lg text-red-300 mb-4"> Firebase bağlantısı kurulamadı veya veri alınamıyor. Manuel simülasyon modundasınız. </p> <form onSubmit={handleManualSubmit} className="flex flex-col sm:flex-row gap-4 mb-6"> <input type="text" id="manualInput" name="manualInput" placeholder="Örn: krmz, mavi, ysl..." className="flex-grow p-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500" /> <button type="submit" className="p-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">Renk Gönder</button> </form> <p className="text-lg text-gray-300"> Algılanan renk: <strong className="font-bold text-2xl" style={{color: colorData[detectedColor.code]?.hex || '#a78bfa' }}>{detectedColor.name}</strong> </p> </div> ) : ( <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-gray-700"> <p className="text-lg text-gray-300 mb-4"> Bağlantı Durumu: <strong className={`font-bold text-xl ${isConnected ? 'text-green-400' : 'text-red-400'}`}>{isConnected ? 'Bağlı' : 'Bağlı Değil'}</strong> </p> <p className="text-lg text-gray-300"> Algılanan renk: <strong className="font-bold text-2xl" style={{color: colorData[detectedColor.code]?.hex || '#a78bfa' }}>{detectedColor.name}</strong> </p> </div> )} <p className="text-sm text-gray-500 mt-4"> Bu bölüm, Deneyap Kart'tan gelen gerçek zamanlı renk verilerini gösterir. Kartınızın Firebase Realtime Database'e doğru şekilde veri gönderdiğinden emin olun. </p> </div> ); };
+            return ( 
+                <div className="w-full max-w-2xl mx-auto text-center flex flex-col">
+                    <div className="flex-grow">
+                        <h1 className="text-4xl font-bold text-white mb-2">Canlı Sensör Verisi</h1>
+                        <p className="text-gray-400 mb-6">Deneyap Kart'tan gelen canlı renk verisi burada gösterilir.</p>
+                        {isManualMode ? ( 
+                            <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-red-500">
+                                <p className="text-lg text-red-300 mb-4"> Firebase bağlantısı kurulamadı. Manuel simülasyon modundasınız. </p>
+                                <form onSubmit={handleManualSubmit} className="flex flex-col sm:flex-row gap-4 mb-6">
+                                    <input type="text" id="manualInput" name="manualInput" placeholder="Örn: krmz, mavi, ysl..." className="flex-grow p-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500" />
+                                    <button type="submit" className="p-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">Renk Gönder</button>
+                                </form>
+                                <p className="text-lg text-gray-300"> Algılanan renk: <strong className="font-bold text-2xl" style={{color: detectedColor.hex || '#a78bfa' }}>{detectedColor.name}</strong> </p>
+                            </div> 
+                        ) : ( 
+                            <div className="p-6 bg-gray-900/70 rounded-xl shadow-lg border border-gray-700">
+                                <p className="text-lg text-gray-300 mb-4"> Bağlantı Durumu: <strong className={`font-bold text-xl ${isConnected ? 'text-green-400' : 'text-red-400'}`}>{isConnected ? 'Bağlı' : 'Bağlı Değil'}</strong> </p>
+                                <p className="text-lg text-gray-300"> Algılanan renk: <strong className="font-bold text-2xl" style={{color: detectedColor.hex || '#a78bfa' }}>{detectedColor.name}</strong> </p>
+                            </div> 
+                        )}
+                        <p className="text-sm text-gray-500 mt-4"> Bu bölüm, Deneyap Kart'tan gelen gerçek zamanlı renk verilerini gösterir. </p>
+                    </div>
+                    
+                    {/* YENİ: Renk Geçmişi Bölümü */}
+                    <div className="mt-8 w-full">
+                        <h3 className="text-2xl font-bold text-white mb-4">Renk Geçmişi</h3>
+                        <div className="bg-gray-900/70 p-4 rounded-xl flex justify-center items-center gap-2 min-h-[60px]">
+                            {colorHistory.length > 0 ? (
+                                colorHistory.map((color, index) => (
+                                    <div key={index} className="flex flex-col items-center gap-1">
+                                        <span className="text-xs text-gray-400">{colorData[color.code]?.sound || ''}</span>
+                                        <div 
+                                            className="w-10 h-10 rounded-lg"
+                                            style={{ backgroundColor: color.hex }}
+                                            title={color.name}
+                                        ></div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-gray-500">Henüz bir renk algılanmadı.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ); 
+        };
 
         // --- ANA UYGULAMA BİLEŞENİ ---
         const App = () => {
@@ -271,37 +443,40 @@
             const bgMusicRef = useRef(null);
 
             useEffect(() => {
-                bgMusicRef.current = document.getElementById('bg-music-player');
+                bgMusicRef.current = new Audio("https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/fon%20muzik.mp3");
+                bgMusicRef.current.loop = true;
+            }, []);
+
+            useEffect(() => {
                 if (bgMusicRef.current) {
                     bgMusicRef.current.volume = bgMusicVolume;
                 }
-            }, []);
-            
+            }, [bgMusicVolume]);
+
             const handleWelcomeStart = () => {
                 setIsExperienceStarted(true);
-                if (bgMusicRef.current) {
-                    bgMusicRef.current.play().catch(e => console.error("Arka plan müziği çalma hatası:", e));
-                    setIsMusicPlaying(true);
-                }
+                const introAudio = new Audio("https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/Tanıtım.mp3");
+                introAudio.play().catch(e => console.error("Giriş sesi çalma hatası:", e));
+                
+                bgMusicRef.current.play().catch(e => {
+                    console.error("Arka plan müziği çalma hatası:", e);
+                    setIsMusicPlaying(false);
+                });
+                setIsMusicPlaying(true);
             };
 
             const toggleMusic = () => {
-                if (bgMusicRef.current) {
-                    if (isMusicPlaying) {
-                        bgMusicRef.current.pause();
-                    } else {
-                        bgMusicRef.current.play().catch(e => console.error("Müzik çalma hatası:", e));
-                    }
-                    setIsMusicPlaying(!isMusicPlaying);
+                const audio = bgMusicRef.current;
+                if (isMusicPlaying) {
+                    audio.pause();
+                } else {
+                    audio.play().catch(e => console.error("Müzik geçiş hatası:", e));
                 }
+                setIsMusicPlaying(!isMusicPlaying);
             };
             
             const handleVolumeChange = (e) => {
-                const newVolume = parseFloat(e.target.value);
-                setBgMusicVolume(newVolume);
-                if (bgMusicRef.current) {
-                    bgMusicRef.current.volume = newVolume;
-                }
+                setBgMusicVolume(parseFloat(e.target.value));
             };
 
             const clearNotification = () => setNotification(null);
