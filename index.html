@@ -114,8 +114,8 @@
                     elevenLabsAudio.currentTime = 0;
                 }
 
-                if (elevenLabsApiKey && elevenLabsApiKey.length > 10) { // Basit bir anahtar geçerlilik kontrolü
-                    const VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Örnek ses ID'si
+                if (elevenLabsApiKey && elevenLabsApiKey.length > 10) {
+                    const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
                     const url = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
                     const options = {
                         method: 'POST',
@@ -396,6 +396,13 @@
             const colorData = { krmz: { name: 'Kırmızı', hex: '#ef4444', sound: 'krmz' }, ysl: { name: 'Yeşil', hex: '#22c55e', sound: 'ysl' }, mavi: { name: 'Mavi', hex: '#3b82f6', sound: 'mavi' }, sari: { name: 'Sarı', hex: '#eab308', sound: 'sari' }, trnc: { name: 'Turuncu', hex: '#f97316', sound: 'trnc' }, mor: { name: 'Mor', hex: '#8b5cf6', sound: 'mor' }, pembe: { name: 'Pembe', hex: '#ec4899', sound: 'pmb' }, };
             const soundBaseUrl = "https://raw.githubusercontent.com/Sev84/Holodvision-Demo/main/";
             
+            const fallbackAnalyses = [
+                "Bu kompozisyon, sakin bir gün batımının melankolik tonlarını anımsatıyor. Ağır ve düşünceli notalar, sıcak renklerle birleşerek içe dönük bir an yaratıyor.",
+                "Enerjik ve canlı bir başlangıç! Hızlı notalar ve parlak renkler, neşeli bir bahar sabahının coşkusunu ve umudunu yansıtıyor.",
+                "Gizemli ve derin bir atmosfer... Soğuk renklerin hakimiyeti ve aralıklı, merak uyandıran notalar, gece yarısı bir ormanda yapılan keşif gezisinin heyecanını hissettiriyor.",
+                "Nostaljik bir melodi bu. Pastel tonlar ve yavaş tempolu notalar, eski bir fotoğraf albümüne bakarken hissedilen tatlı bir hüznü ve anıların sıcaklığını taşıyor."
+            ];
+
             const playColorSound = (colorInfo) => {
                 if (!colorInfo || !colorInfo.sound) return;
                 const audio = audioRef.current;
@@ -431,69 +438,73 @@
 
             const handleAnalysis = async () => {
                 const apiKey = localStorage.getItem("geminiApiKey");
-                if (!apiKey) {
-                    setNotification("Lütfen Ayarlar'dan API anahtarınızı girin.");
-                    openApiModal();
-                    return;
-                }
+                
                 if (colorHistory.length === 0) {
                     setNotification("Yorum yapmak için önce renk verisi algılanmalıdır.");
                     return;
                 }
+                
                 setIsLoadingAnalysis(true);
                 setAnalysisResult("");
                 setGeneratedImage("");
-                
-                const colorSequence = colorHistory.map(c => c.name).join(', ');
-                const noteSequence = colorHistory.map(c => c.sound).join(' ');
-                
-                const textPrompt = `Bir sanat ve müzik eleştirmeni olarak, aşağıdaki renk dizisi ve nota diziliminden oluşan soyut kompozisyonun duygusal tonunu yorumla. Renklerin yarattığı atmosferi, notaların çağrıştırdığı hisleri ve bu ikisinin birleşiminden doğan genel ruh halini şiirsel bir dille anlat. Yorumun kısa ve etkileyici olsun. Renkler: ${colorSequence}. Notalar: ${noteSequence}.`;
-                
-                try {
-                    // Adım 1: Metin analizi al
-                    let chatHistory = [{ role: "user", parts: [{ text: textPrompt }] }];
-                    const textPayload = { contents: chatHistory };
-                    const textApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                // API Anahtarı varsa, yapay zeka ile yorumla ve görsel üret
+                if (apiKey) {
+                    const colorSequence = colorHistory.map(c => c.name).join(', ');
+                    const noteSequence = colorHistory.map(c => c.sound).join(' ');
+                    const textPrompt = `Bir sanat ve müzik eleştirmeni olarak, aşağıdaki renk dizisi ve nota diziliminden oluşan soyut kompozisyonun duygusal tonunu yorumla. Renklerin yarattığı atmosferi, notaların çağrıştırdığı hisleri ve bu ikisinin birleşiminden doğan genel ruh halini şiirsel bir dille anlat. Yorumun kısa ve etkileyici olsun. Renkler: ${colorSequence}. Notalar: ${noteSequence}.`;
                     
-                    const textResponse = await fetch(textApiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(textPayload)
-                    });
-                    const textResult = await textResponse.json();
-                    
-                    let analysisText = "Yorum alınamadı.";
-                    if (textResult.candidates && textResult.candidates[0]?.content?.parts?.[0]?.text) {
-                        analysisText = textResult.candidates[0].content.parts[0].text;
-                    } else if (textResult.error) {
-                        throw new Error(textResult.error.message);
+                    try {
+                        let chatHistory = [{ role: "user", parts: [{ text: textPrompt }] }];
+                        const textPayload = { contents: chatHistory };
+                        const textApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                        
+                        const textResponse = await fetch(textApiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(textPayload)
+                        });
+                        const textResult = await textResponse.json();
+                        
+                        let analysisText = "Yorum alınamadı.";
+                        if (textResult.candidates && textResult.candidates[0]?.content?.parts?.[0]?.text) {
+                            analysisText = textResult.candidates[0].content.parts[0].text;
+                        } else if (textResult.error) {
+                            throw new Error(textResult.error.message);
+                        }
+                        setAnalysisResult(analysisText);
+                        speakText(analysisText);
+
+                        const imagePrompt = `Abstract emotional digital art inspired by this feeling: "${analysisText}". The main colors are ${colorSequence}.`;
+                        const imagePayload = { instances: [{ prompt: imagePrompt }], parameters: { "sampleCount": 1} };
+                        const imageApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+                        const imageResponse = await fetch(imageApiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(imagePayload)
+                        });
+                        const imageResult = await imageResponse.json();
+
+                        if (imageResult.predictions && imageResult.predictions[0]?.bytesBase64Encoded) {
+                            const imageUrl = `data:image/png;base64,${imageResult.predictions[0].bytesBase64Encoded}`;
+                            setGeneratedImage(imageUrl);
+                        } else if (imageResult.error) {
+                            throw new Error(imageResult.error.message);
+                        }
+
+                    } catch (error) {
+                        console.error("Yapay zeka analizi veya görsel üretimi sırasında hata:", error);
+                        setAnalysisResult(`Yorumlama sırasında bir hata oluştu: ${error.message}`);
+                    } finally {
+                        setIsLoadingAnalysis(false);
                     }
-                    setAnalysisResult(analysisText);
-                    speakText(analysisText);
-
-                    // Adım 2: Görsel üret
-                    const imagePrompt = `Abstract emotional digital art inspired by this feeling: "${analysisText}". The main colors are ${colorSequence}.`;
-                    const imagePayload = { instances: [{ prompt: imagePrompt }], parameters: { "sampleCount": 1} };
-                    const imageApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
-
-                    const imageResponse = await fetch(imageApiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(imagePayload)
-                    });
-                    const imageResult = await imageResponse.json();
-
-                    if (imageResult.predictions && imageResult.predictions[0]?.bytesBase64Encoded) {
-                        const imageUrl = `data:image/png;base64,${imageResult.predictions[0].bytesBase64Encoded}`;
-                        setGeneratedImage(imageUrl);
-                    } else if (imageResult.error) {
-                        throw new Error(imageResult.error.message);
-                    }
-
-                } catch (error) {
-                    console.error("Yapay zeka analizi veya görsel üretimi sırasında hata:", error);
-                    setAnalysisResult(`Yorumlama sırasında bir hata oluştu: ${error.message}`);
-                } finally {
+                } else {
+                    // API Anahtarı yoksa, hazır metinlerden birini kullan
+                    const randomIndex = Math.floor(Math.random() * fallbackAnalyses.length);
+                    const fallbackText = fallbackAnalyses[randomIndex];
+                    setAnalysisResult(fallbackText);
+                    speakText(fallbackText);
                     setIsLoadingAnalysis(false);
                 }
             };
