@@ -84,17 +84,32 @@
         }
         
         .pulse-glow {
-            animation: pulse-glow-animation 2s 3; /* 3 kez tekrarla */
+            animation: pulse-glow-animation 2s 3;
         }
         @keyframes pulse-glow-animation {
             0% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(233, 69, 96, 0); }
             100% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0); }
         }
+
+        .composer-button-glow {
+            animation: composer-glow 1.5s infinite alternate;
+        }
+        @keyframes composer-glow {
+            from {
+                transform: scale(1);
+                box-shadow: 0 0 5px #ec4899, 0 0 10px #ec4899, 0 0 15px #ec4899;
+            }
+            to {
+                transform: scale(1.05);
+                box-shadow: 0 0 20px #f472b6, 0 0 30px #f472b6, 0 0 40px #f472b6;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
+    <audio id="narration-player"></audio>
     
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
@@ -121,13 +136,13 @@
         // --- YARDIMCI BİLEŞENLER ve FONKSİYONLAR ---
         
         const speakText = (text, elevenLabsApiKey) => {
-            const elevenLabsAudio = new Audio();
+            const narrationPlayer = document.getElementById('narration-player');
 
             return new Promise(async (resolve, reject) => {
                 window.speechSynthesis.cancel();
-                if (elevenLabsAudio && !elevenLabsAudio.paused) {
-                    elevenLabsAudio.pause();
-                    elevenLabsAudio.currentTime = 0;
+                if (narrationPlayer && !narrationPlayer.paused) {
+                    narrationPlayer.pause();
+                    narrationPlayer.src = "";
                 }
 
                 if (elevenLabsApiKey && elevenLabsApiKey.length > 10) {
@@ -143,10 +158,10 @@
                         if (!response.ok) throw new Error(`HTTP ${response.status}`);
                         const audioBlob = await response.blob();
                         const audioUrl = URL.createObjectURL(audioBlob);
-                        elevenLabsAudio.src = audioUrl;
-                        elevenLabsAudio.onended = resolve;
-                        elevenLabsAudio.onerror = reject;
-                        await elevenLabsAudio.play();
+                        narrationPlayer.src = audioUrl;
+                        narrationPlayer.onended = resolve;
+                        narrationPlayer.onerror = reject;
+                        await narrationPlayer.play();
                     } catch (error) {
                         console.error("ElevenLabs API hatası. Tarayıcı sesine geçiliyor:", error);
                         speakWithBrowser(text, resolve, reject);
@@ -526,7 +541,7 @@
             );
         };
 
-        const ComposerView = () => ( <div className="w-full text-center"> <h2 className="text-4xl font-bold text-center mb-4">PİKSENFONİ Besteci</h2> <p className="text-center text-gray-400 mb-8">Resimlerinizden müzik yaratın. Bu özellik yakında geliyor!</p> <a href="https://sev84.github.io/Holodvision-Piksenfoni-Besteci/" target="_blank" rel="noopener noreferrer" className="inline-block bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105">Besteciyi Ayrı Sekmede Aç</a> </div> );
+        const ComposerView = () => ( <div className="w-full text-center"> <h2 className="text-4xl font-bold text-center mb-4">PİKSENFONİ Besteci</h2> <p className="text-center text-gray-400 mb-8">Resimlerinizden müzik yaratın. Bu özellik yakında geliyor!</p> <a href="https://sev84.github.io/Holodvision-Piksenfoni-Besteci/" target="_blank" rel="noopener noreferrer" className="inline-block bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-all composer-button-glow">Besteciyi Ayrı Sekmede Aç</a> </div> );
         const ProjeView = () => ( <div className="w-full max-w-5xl mx-auto"> <h2 className="text-4xl font-bold text-center mb-12">Proje Hakkında</h2> <div className="grid md:grid-cols-3 gap-8 mb-16 text-center"> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Amacımız</h3> <p className="text-gray-400">Görme engelli bireylerin sanata erişimini artırmak ve sanat eserlerini çoklu duyusal yollarla, özgürce deneyimlemelerini sağlamak.</p> </div> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Teknolojimiz</h3> <p className="text-gray-400">RGB renk sensörlü akıllı eldiven, renkleri notalara ve titreşimlere dönüştürür. QR kod tabanlı web uygulamamız ise eserlere özel müziklere anında erişim sunar.</p> </div> <div className="bg-gray-800/50 p-6 rounded-xl"> <h3 className="text-2xl font-bold text-red-300 mb-3">Hedef Kitlemiz</h3> <p className="text-gray-400">Görme engelli bireyler, özel eğitim kurumları, müzeler, sanat galerileri ve sanata erişilebilir bir pencereden bakmak isteyen herkes.</p> </div> </div> <div className="text-center bg-gray-800/50 p-8 rounded-xl"> <h3 className="text-3xl font-bold mb-4">Renk ve Ses Eldiveni</h3> <p className="text-gray-400 max-w-2xl mx-auto mb-6">Eldiveni kullanarak tablolardaki renklere dokunun ve notaları duyun. Sanatla aranızdaki engelleri kaldırın.</p> <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"> ⚡ Firebase Bağlantısı Kuruldu </button> <p className="text-sm text-gray-500 mt-3">Canlı sensör verisi için "Sensör" bölümünü ziyaret edin.</p> </div> </div> );
         const IletisimView = ({ setNotification }) => {
             const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -885,6 +900,11 @@
                 if (introAudioRef.current && !introAudioRef.current.paused) {
                     introAudioRef.current.pause();
                     introAudioRef.current.currentTime = 0;
+                }
+                const narrationPlayer = document.getElementById('narration-player');
+                if (narrationPlayer && !narrationPlayer.paused) {
+                    narrationPlayer.pause();
+                    narrationPlayer.src = "";
                 }
             };
 
